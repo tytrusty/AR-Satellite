@@ -2,7 +2,7 @@ package com.google.ar.core.examples.java.helloar;
 
 import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
 
-import SGP4.SGP4SatData;
+import com.google.ar.core.examples.java.helloar.SGP4.SGP4SatData;
 
 /**
  * Created by TY on 1/1/2018. Damn this is how I spend my new year?
@@ -14,7 +14,7 @@ public class Satellite {
     private double mLatitude; // latitude in radians
     private double mAltitude; // altitude in meters
     private double mSpeed;    // speed in m/s
-    public SGP4SatData data;  // SGP4 data
+    public SGP4SatData data;  // com.google.ar.core.examples.java.helloar.SGP4 data
     private SatelliteRenderer mRenderer; // Render satellite object
 
     public Satellite(SGP4SatData data) {

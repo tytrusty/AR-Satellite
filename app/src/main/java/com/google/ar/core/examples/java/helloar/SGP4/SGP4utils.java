@@ -1,6 +1,6 @@
-package SGP4;
+package com.google.ar.core.examples.java.helloar.SGP4;
 /**     ----------------------------------------------------------------
- * Contains functions to read TLE data files and initalize the SGP4 propogator
+ * Contains functions to read TLE data files and initalize the com.google.ar.core.examples.java.helloar.SGP4 propogator
  * as well as other routines from sgp4ext.cpp
  *
  * <p>
@@ -32,13 +32,6 @@ package SGP4;
 
 //package sgp4_cssi;
 
-        import java.math.BigDecimal;
-        import java.text.DecimalFormat;
-        import java.text.DecimalFormatSymbols;
-        import java.text.NumberFormat;
-        import java.text.ParsePosition;
-        import java.util.Locale;
-
 /**
  * 19 June 2009
  * @author Shawn E. Gano, shawn@gano.name
@@ -50,7 +43,7 @@ public class SGP4utils
     public static char OPSMODE_IMPROVED = 'i';
 
     /**
-     * Reads the data from the TLE and initializes the SGP4 propogator variables and stores them in the SGP4unit.Gravconsttype object
+     * Reads the data from the TLE and initializes the com.google.ar.core.examples.java.helloar.SGP4 propogator variables and stores them in the SGP4unit.Gravconsttype object
      * DOES NOT PERFORM ANY INTERNAL CHECK BEYOND BASICS OF THE TLE DATA use other methods to do that if desired.
      *
      * @param satName
@@ -58,7 +51,7 @@ public class SGP4utils
      * @param line2  TLE line 2
      * @param opsmode
      * @param whichconst which constants to use in propogation
-     * @param satrec  object to store the SGP4 data
+     * @param satrec  object to store the com.google.ar.core.examples.java.helloar.SGP4 data
      * @return if the sgp4 propogator was initialized properly
      */
     public static boolean readTLEandIniSGP4(String satName, String line1, String line2, char opsmode, SGP4unit.Gravconsttype whichconst, SGP4SatData satrec)

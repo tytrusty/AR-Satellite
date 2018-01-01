@@ -1,4 +1,4 @@
-package SGP4;
+package com.google.ar.core.examples.java.helloar.SGP4;
 
 /**
  * Created by TY on 1/1/2018.
@@ -38,10 +38,10 @@ public class SGP4track {
      * Take in TLE information and extract a satellite
      *
      * @param tleData The raw TLE string data
-     * @return a satellite with the necessary SGP4 data OR null if failure to initialize
+     * @return a satellite with the necessary com.google.ar.core.examples.java.helloar.SGP4 data OR null if failure to initialize
      */
     public static Satellite initSatellite(TLEdata tleData) {
-        // Read TLE information and initialize SGP4 model
+        // Read TLE information and initialize com.google.ar.core.examples.java.helloar.SGP4 model
         SGP4SatData data = new SGP4SatData();
         boolean result = SGP4utils.readTLEandIniSGP4(
                 tleData.line0,          // Name of satellite
@@ -61,7 +61,7 @@ public class SGP4track {
 
 
     /**
-     * Executes SGP4 propogation algorithm to determine orbital values and coordinates for the
+     * Executes com.google.ar.core.examples.java.helloar.SGP4 propogation algorithm to determine orbital values and coordinates for the
      * provided satellite.
      * @param sat satellite for which data will be set
      */
@@ -118,7 +118,7 @@ public class SGP4track {
 //        if (data == null) {
 //            data = new SGP4SatData();
 //
-//            // read in data and ini SGP4 data
+//            // read in data and ini com.google.ar.core.examples.java.helloar.SGP4 data
 //            boolean result = SGP4utils.readTLEandIniSGP4(name, line1, line2, opsmode, gravconsttype, data);
 //            if(!result) Log.i("SGP4track:", "readTLEandIniSGP4 - Error Reading / Ini Data, error code: " + data.error);
 //

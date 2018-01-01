@@ -20,6 +20,8 @@ import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
+import android.util.Log;
+
 import com.google.ar.core.examples.java.helloar.R;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjData;
@@ -236,13 +238,25 @@ public class ObjectRenderer {
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @see android.opengl.Matrix
      */
+    float angle = 0.0f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0] = scaleFactor;
         scaleMatrix[5] = scaleFactor;
         scaleMatrix[10] = scaleFactor;
+//        Matrix.translateM(scaleMatrix, 0, 0, 10, 0);
+        Matrix.rotateM(modelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+        Matrix.translateM(mModelMatrix, 0, 0, scaleFactor, 0);
+
+        System.out.println("mModelMatrix printing...");
+//        for (int i = 0; i < 4; ++i) {
+//            for (int j = 0; j < 4; ++j) {
+//                System.out.print(mModelMatrix[i * 4 + j] + ", ");
+//            }
+//            System.out.println();
+//        }
     }
 
     /**
@@ -357,7 +371,7 @@ public class ObjectRenderer {
         ShaderUtil.checkGLError(TAG, "After draw");
     }
 
-    private static void normalizeVec3(float[] v) {
+    public static void normalizeVec3(float[] v) {
         float reciprocalLength = 1.0f / (float) Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
         v[0] *= reciprocalLength;
         v[1] *= reciprocalLength;

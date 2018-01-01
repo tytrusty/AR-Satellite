@@ -1,6 +1,6 @@
-package SGP4;
+package com.google.ar.core.examples.java.helloar.SGP4;
 // based off of the "typedef struct elsetrec" in the CSSI's sgp4unit.h file
-// conatins all the data needed for a SGP4 propogated satellite
+// conatins all the data needed for a com.google.ar.core.examples.java.helloar.SGP4 propogated satellite
 // holds all initialization info, etc.
 
 /**

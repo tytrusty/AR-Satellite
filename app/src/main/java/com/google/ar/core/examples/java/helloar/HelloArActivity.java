@@ -377,7 +377,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 System.out.println("Scale: " + mScaleFactor);
                 mVirtualObject.updateModelMatrix(mAnchorMatrix, mScaleFactor);
                 mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
-                //mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
+                mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
             }
 

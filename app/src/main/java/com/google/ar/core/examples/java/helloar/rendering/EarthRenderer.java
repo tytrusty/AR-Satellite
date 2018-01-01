@@ -207,4 +207,99 @@ public class EarthRenderer extends ObjectRenderer {
         Matrix.setIdentityM(mModelMatrix, 0);
     }
 
+    /**
+     * Draws the model.
+     *
+     * @param cameraView  A 4x4 view matrix, in column-major order.
+     * @param cameraPerspective  A 4x4 projection matrix, in column-major order.
+     * @param lightIntensity  Illumination intensity.  Combined with diffuse and specular material
+     *     properties.
+     * @see #setBlendMode(BlendMode)
+     * @see #updateModelMatrix(float[], float)
+     * @see #setMaterialProperties(float, float, float, float)
+     * @see android.opengl.Matrix
+     */
+    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity) {
+
+        ShaderUtil.checkGLError(TAG, "Before draw");
+
+        // Build the ModelView and ModelViewProjection matrices
+        // for calculating object position and light.
+        Matrix.multiplyMM(mModelViewMatrix, 0, cameraView, 0, mModelMatrix, 0);
+        Matrix.multiplyMM(mModelViewProjectionMatrix, 0, cameraPerspective, 0, mModelViewMatrix, 0);
+
+        GLES20.glUseProgram(mProgram);
+
+        // Set the lighting environment properties.
+        Matrix.multiplyMV(mViewLightDirection, 0, mModelViewMatrix, 0, LIGHT_DIRECTION, 0);
+        normalizeVec3(mViewLightDirection);
+        GLES20.glUniform4f(mLightingParametersUniform,
+                mViewLightDirection[0], mViewLightDirection[1], mViewLightDirection[2], lightIntensity);
+
+        // Set the object material properties.
+        GLES20.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
+                mSpecularPower);
+
+        // Attach the object texture.
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextures[0]);
+        GLES20.glUniform1i(mTextureUniform, 0);
+
+        // Set the vertex attributes.
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
+
+        GLES20.glVertexAttribPointer(
+                mPositionAttribute, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, mVerticesBaseAddress);
+        GLES20.glVertexAttribPointer(
+                mNormalAttribute, 3, GLES20.GL_FLOAT, false, 0, mNormalsBaseAddress);
+        GLES20.glVertexAttribPointer(
+                mTexCoordAttribute, 2, GLES20.GL_FLOAT, false, 0, mTexCoordsBaseAddress);
+
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+
+        // Set the ModelViewProjection matrix in the shader.
+        GLES20.glUniformMatrix4fv(
+                mModelViewUniform, 1, false, mModelViewMatrix, 0);
+        GLES20.glUniformMatrix4fv(
+                mModelViewProjectionUniform, 1, false, mModelViewProjectionMatrix, 0);
+
+        // Enable vertex arrays
+        GLES20.glEnableVertexAttribArray(mPositionAttribute);
+        GLES20.glEnableVertexAttribArray(mNormalAttribute);
+        GLES20.glEnableVertexAttribArray(mTexCoordAttribute);
+
+        if (mBlendMode != null) {
+            GLES20.glDepthMask(false);
+            GLES20.glEnable(GLES20.GL_BLEND);
+            switch (mBlendMode) {
+                case Shadow:
+                    // Multiplicative blending function for Shadow.
+                    GLES20.glBlendFunc(GLES20.GL_ZERO, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                    break;
+                case Grid:
+                    // Grid, additive blending function.
+                    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                    break;
+            }
+        }
+
+        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, mIndexBufferId);
+        GLES20.glDrawElements(GLES20.GL_TRIANGLES, mIndexCount, GLES20.GL_UNSIGNED_SHORT, 0);
+        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        if (mBlendMode != null) {
+            GLES20.glDisable(GLES20.GL_BLEND);
+            GLES20.glDepthMask(true);
+        }
+
+        // Disable vertex arrays
+        GLES20.glDisableVertexAttribArray(mPositionAttribute);
+        GLES20.glDisableVertexAttribArray(mNormalAttribute);
+        GLES20.glDisableVertexAttribArray(mTexCoordAttribute);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+
+        ShaderUtil.checkGLError(TAG, "After draw");
+    }
+
 }

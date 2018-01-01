@@ -1,6 +1,6 @@
-package SGP4;
+package com.google.ar.core.examples.java.helloar.SGP4;
 /**
- *   Vallado/CSSI SGP4 propogator
+ *   Vallado/CSSI com.google.ar.core.examples.java.helloar.SGP4 propogator
  *   Converted to Java from C++ by: Shawn E. Gano, 19 June 2009
  *   The goal of this conversion was to stick as closely to the orginal code
  *   as possible and not trying to convert it to OO design.
@@ -1286,7 +1286,7 @@ public class SGP4unit
      * @param ecco eccentricity (0,1)
      * @param epoch epoch time in days from jan 0, 1950. 0 hr
      * @param inclo inclination of satellite
-     * @param satrec satellite object that stores needed SGP4 data
+     * @param satrec satellite object that stores needed com.google.ar.core.examples.java.helloar.SGP4 data
      * @return double array with these values: [ainv, ao, con42, cosio, cosio2, eccsq, omeosq, posq, rp, rteosq, sinio]
      */
 // outputs not stored in SGP4SatData and are returned by this function:

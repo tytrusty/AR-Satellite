@@ -1,4 +1,4 @@
-package SGP4;
+package com.google.ar.core.examples.java.helloar.SGP4;
 
 /**
  * Created by Ty on 4/12/2016.
