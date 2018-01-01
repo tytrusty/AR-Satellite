@@ -31,7 +31,6 @@ import com.google.ar.core.examples.java.helloar.R;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 
 /**
  * Renders an object loaded from an OBJ file in OpenGL.
@@ -111,10 +110,9 @@ public class EarthRenderer extends ObjectRenderer {
      * Creates and initializes OpenGL resources needed for rendering the model.
      *
      * @param context Context for loading the shader and below-named model and texture assets.
-     * @param objAssetName  Name of the OBJ file containing the model geometry.
      * @param diffuseTextureAssetName  Name of the PNG file containing the diffuse texture map.
      */
-    public void createOnGlThread(Context context, String objAssetName,
+    public void createOnGlThread(Context context,
                                  String diffuseTextureAssetName) throws IOException {
         // Read the texture.
         Bitmap textureBitmap = BitmapFactory.decodeStream(
@@ -141,10 +139,10 @@ public class EarthRenderer extends ObjectRenderer {
         mVertexBufferId = buffers[0];
         mIndexBufferId = buffers[1];
 
-        // Load vertex buffer
+        // Generate sphere
         create_sphere();
 
-
+        // Load buffers
         FloatBuffer vertBuffer = FloatBuffer.allocate(verticesSize);
         FloatBuffer texBuffer  = FloatBuffer.allocate(texCoordsSize);
         FloatBuffer normBuffer = FloatBuffer.allocate(verticesSize);
@@ -208,48 +206,5 @@ public class EarthRenderer extends ObjectRenderer {
 
         Matrix.setIdentityM(mModelMatrix, 0);
     }
-
-    /**
-     * Selects the blending mode for rendering.
-     *
-     * @param blendMode The blending mode.  Null indicates no blending (opaque rendering).
-     */
-    public void setBlendMode(BlendMode blendMode) {
-        mBlendMode = blendMode;
-    }
-
-    /**
-     * Updates the object model matrix and applies scaling.
-     *
-     * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
-     * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
-     * @see android.opengl.Matrix
-     */
-    public void updateModelMatrix(float[] modelMatrix, float scaleFactor) {
-        float[] scaleMatrix = new float[16];
-        Matrix.setIdentityM(scaleMatrix, 0);
-        scaleMatrix[0] = scaleFactor;
-        scaleMatrix[5] = scaleFactor;
-        scaleMatrix[10] = scaleFactor;
-        Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
-    }
-
-    /**
-     * Sets the surface characteristics of the rendered model.
-     *
-     * @param ambient  Intensity of non-directional surface illumination.
-     * @param diffuse  Diffuse (matte) surface reflectivity.
-     * @param specular  Specular (shiny) surface reflectivity.
-     * @param specularPower  Surface shininess.  Larger values result in a smaller, sharper
-     *     specular highlight.
-     */
-    public void setMaterialProperties(
-            float ambient, float diffuse, float specular, float specularPower) {
-        mAmbient = ambient;
-        mDiffuse = diffuse;
-        mSpecular = specular;
-        mSpecularPower = specularPower;
-    }
-
 
 }

@@ -45,6 +45,7 @@ import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer.BlendMode;
 import com.google.ar.core.examples.java.helloar.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PointCloudRenderer;
+import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
@@ -72,8 +73,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private DisplayRotationHelper mDisplayRotationHelper;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
-    private final ObjectRenderer mVirtualObject = new EarthRenderer();
-    private final ObjectRenderer mVirtualObjectShadow = new ObjectRenderer();
+    private final EarthRenderer mVirtualObject = new EarthRenderer();
+    private final SatelliteRenderer mVirtualObjectShadow = new SatelliteRenderer();
     private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
 
@@ -252,15 +253,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // Prepare the other rendering objects.
         try {
-            //mVirtualObject.createOnGlThread(/*context=*/this, "andy.obj", "andy.png");
-            mVirtualObject.createOnGlThread(/*context=*/this, "earth.obj", "Albedo.jpg");
+            mVirtualObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
 
             mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mVirtualObjectShadow.createOnGlThread(/*context=*/this,
-                "andy_shadow.obj", "andy_shadow.png");
-            mVirtualObjectShadow.setBlendMode(BlendMode.Shadow);
-            mVirtualObjectShadow.setMaterialProperties(1.0f, 0.0f, 0.0f, 1.0f);
+            mVirtualObjectShadow.createOnGlThread(/*context=*/this,"iss.obj", 0xCC0000FF);
+            mVirtualObjectShadow.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
         } catch (IOException e) {
             Log.e(TAG, "Failed to read obj file");
         }
@@ -379,7 +377,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 System.out.println("Scale: " + mScaleFactor);
                 mVirtualObject.updateModelMatrix(mAnchorMatrix, mScaleFactor);
                 mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
-                mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
+                //mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
             }
 

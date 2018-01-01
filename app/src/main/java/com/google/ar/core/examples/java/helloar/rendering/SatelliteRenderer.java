@@ -1,3 +1,31 @@
+package com.google.ar.core.examples.java.helloar.rendering;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.opengl.GLES20;
+import android.opengl.GLUtils;
+import android.opengl.Matrix;
+
+import com.google.ar.core.examples.java.helloar.R;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
+
+import de.javagl.obj.Obj;
+import de.javagl.obj.ObjData;
+import de.javagl.obj.ObjReader;
+import de.javagl.obj.ObjUtils;
+
+/**
+ * Created by TY on 12/31/2017.
+ */
+
 /*
  * Copyright 2017 Google Inc. All Rights Reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,32 +40,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.ar.core.examples.java.helloar.rendering;
-
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.opengl.GLES20;
-import android.opengl.GLUtils;
-import android.opengl.Matrix;
-import com.google.ar.core.examples.java.helloar.R;
-import de.javagl.obj.Obj;
-import de.javagl.obj.ObjData;
-import de.javagl.obj.ObjReader;
-import de.javagl.obj.ObjUtils;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
-
 /**
  * Renders an object loaded from an OBJ file in OpenGL.
  */
-public class ObjectRenderer {
-    private static final String TAG = ObjectRenderer.class.getSimpleName();
+public class SatelliteRenderer {
+    private static final String TAG = SatelliteRenderer.class.getSimpleName();
 
     /**
      * Blend mode.
@@ -51,85 +58,66 @@ public class ObjectRenderer {
         Grid
     }
 
-    protected static final int COORDS_PER_VERTEX = 3;
+    private static final int COORDS_PER_VERTEX = 3;
 
     // Note: the last component must be zero to avoid applying the translational part of the matrix.
-    protected static final float[] LIGHT_DIRECTION = new float[] { 0.250f, 0.866f, 0.433f, 0.0f };
-    protected float[] mViewLightDirection = new float[4];
+    private static final float[] LIGHT_DIRECTION = new float[] { 0.250f, 0.866f, 0.433f, 0.0f };
+    private float[] mViewLightDirection = new float[4];
 
     // Object vertex buffer variables.
-    protected int mVertexBufferId;
-    protected int mVerticesBaseAddress;
-    protected int mTexCoordsBaseAddress;
-    protected int mNormalsBaseAddress;
-    protected int mIndexBufferId;
-    protected int mIndexCount;
+    private int mVertexBufferId;
+    private int mVerticesBaseAddress;
+    private int mNormalsBaseAddress;
+    private int mIndexBufferId;
+    private int mIndexCount;
 
-    protected int mProgram;
-    protected int[] mTextures = new int[1];
+    private int mProgram;
+    private int[] mTextures = new int[1];
 
     // Shader location: model view projection matrix.
-    protected int mModelViewUniform;
-    protected int mModelViewProjectionUniform;
+    private int mModelViewUniform;
+    private int mModelViewProjectionUniform;
 
     // Shader location: object attributes.
-    protected int mPositionAttribute;
-    protected int mNormalAttribute;
-    protected int mTexCoordAttribute;
+    private int mPositionAttribute;
+    private int mNormalAttribute;
 
-    // Shader location: texture sampler.
-    protected int mTextureUniform;
+    // Shader location: color
+    private int mColorUniform;
 
     // Shader location: environment properties.
-    protected int mLightingParametersUniform;
+    private int mLightingParametersUniform;
 
     // Shader location: material properties.
-    protected int mMaterialParametersUniform;
+    private int mMaterialParametersUniform;
 
-    protected BlendMode mBlendMode = null;
+    private BlendMode mBlendMode = null;
 
     // Temporary matrices allocated here to reduce number of allocations for each frame.
-    protected float[] mModelMatrix = new float[16];
-    protected float[] mModelViewMatrix = new float[16];
-    protected float[] mModelViewProjectionMatrix = new float[16];
+    private float[] mModelMatrix = new float[16];
+    private float[] mModelViewMatrix = new float[16];
+    private float[] mModelViewProjectionMatrix = new float[16];
+    private float[] mPlaneColor = new float[4];
 
     // Set some default material properties to use for lighting.
-    protected float mAmbient = 0.3f;
-    protected float mDiffuse = 1.0f;
-    protected float mSpecular = 1.0f;
-    protected float mSpecularPower = 6.0f;
+    private float mAmbient = 0.3f;
+    private float mDiffuse = 1.0f;
+    private float mSpecular = 1.0f;
+    private float mSpecularPower = 6.0f;
 
-    public ObjectRenderer() {
-    }
+    public SatelliteRenderer() {}
 
     /**
      * Creates and initializes OpenGL resources needed for rendering the model.
      *
      * @param context Context for loading the shader and below-named model and texture assets.
      * @param objAssetName  Name of the OBJ file containing the model geometry.
-     * @param diffuseTextureAssetName  Name of the PNG file containing the diffuse texture map.
+     * @param color The diffuse hex color of the object to render
      */
-    public void createOnGlThread(Context context, String objAssetName,
-                                 String diffuseTextureAssetName) throws IOException {
-        // Read the texture.
-        Bitmap textureBitmap = BitmapFactory.decodeStream(
-                context.getAssets().open(diffuseTextureAssetName));
+    public void createOnGlThread(Context context, String objAssetName, int color) throws IOException {
 
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glGenTextures(mTextures.length, mTextures, 0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextures[0]);
-
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, textureBitmap, 0);
-        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-
-        textureBitmap.recycle();
-
-        ShaderUtil.checkGLError(TAG, "Texture loading");
+        // Store color integer in a vector for fragment shader
+        colorRgbaToFloat(mPlaneColor, color);
 
         // Read the obj file.
         InputStream objInputStream = context.getAssets().open(objAssetName);
@@ -149,7 +137,6 @@ public class ObjectRenderer {
         // Obtain the data from the OBJ, as direct buffers:
         IntBuffer wideIndices = ObjData.getFaceVertexIndices(obj, 3);
         FloatBuffer vertices = ObjData.getVertices(obj);
-        FloatBuffer texCoords = ObjData.getTexCoords(obj, 2);
         FloatBuffer normals = ObjData.getNormals(obj);
         // Convert int indices to shorts for GL ES 2.0 compatibility
         ShortBuffer indices = ByteBuffer.allocateDirect(2 * wideIndices.limit())
@@ -166,16 +153,13 @@ public class ObjectRenderer {
 
         // Load vertex buffer
         mVerticesBaseAddress = 0;
-        mTexCoordsBaseAddress = mVerticesBaseAddress + 4 * vertices.limit();
-        mNormalsBaseAddress = mTexCoordsBaseAddress + 4 * texCoords.limit();
+        mNormalsBaseAddress = mVerticesBaseAddress + 4 * vertices.limit();
         final int totalBytes = mNormalsBaseAddress + 4 * normals.limit();
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, null, GLES20.GL_STATIC_DRAW);
         GLES20.glBufferSubData(
                 GLES20.GL_ARRAY_BUFFER, mVerticesBaseAddress, 4 * vertices.limit(), vertices);
-        GLES20.glBufferSubData(
-                GLES20.GL_ARRAY_BUFFER, mTexCoordsBaseAddress, 4 * texCoords.limit(), texCoords);
         GLES20.glBufferSubData(
                 GLES20.GL_ARRAY_BUFFER, mNormalsBaseAddress, 4 * normals.limit(), normals);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
@@ -190,9 +174,9 @@ public class ObjectRenderer {
         ShaderUtil.checkGLError(TAG, "OBJ buffer load");
 
         final int vertexShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_VERTEX_SHADER, R.raw.object_vertex);
+                GLES20.GL_VERTEX_SHADER, R.raw.object_color_vertex);
         final int fragmentShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_FRAGMENT_SHADER, R.raw.object_fragment);
+                GLES20.GL_FRAGMENT_SHADER, R.raw.object_color_fragment);
 
         mProgram = GLES20.glCreateProgram();
         GLES20.glAttachShader(mProgram, vertexShader);
@@ -208,9 +192,8 @@ public class ObjectRenderer {
 
         mPositionAttribute = GLES20.glGetAttribLocation(mProgram, "a_Position");
         mNormalAttribute = GLES20.glGetAttribLocation(mProgram, "a_Normal");
-        mTexCoordAttribute = GLES20.glGetAttribLocation(mProgram, "a_TexCoord");
 
-        mTextureUniform = GLES20.glGetUniformLocation(mProgram, "u_Texture");
+        mColorUniform = GLES20.glGetUniformLocation(mProgram, "u_Color");
 
         mLightingParametersUniform = GLES20.glGetUniformLocation(mProgram, "u_LightingParameters");
         mMaterialParametersUniform = GLES20.glGetUniformLocation(mProgram, "u_MaterialParameters");
@@ -295,11 +278,6 @@ public class ObjectRenderer {
         GLES20.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
                 mSpecularPower);
 
-        // Attach the object texture.
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextures[0]);
-        GLES20.glUniform1i(mTextureUniform, 0);
-
         // Set the vertex attributes.
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
 
@@ -307,8 +285,6 @@ public class ObjectRenderer {
                 mPositionAttribute, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, mVerticesBaseAddress);
         GLES20.glVertexAttribPointer(
                 mNormalAttribute, 3, GLES20.GL_FLOAT, false, 0, mNormalsBaseAddress);
-        GLES20.glVertexAttribPointer(
-                mTexCoordAttribute, 2, GLES20.GL_FLOAT, false, 0, mTexCoordsBaseAddress);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
@@ -318,10 +294,12 @@ public class ObjectRenderer {
         GLES20.glUniformMatrix4fv(
                 mModelViewProjectionUniform, 1, false, mModelViewProjectionMatrix, 0);
 
+        // Set plane color. Computed deterministically from the Plane index.
+        GLES20.glUniform4fv(mColorUniform, 1, mPlaneColor, 0);
+
         // Enable vertex arrays
         GLES20.glEnableVertexAttribArray(mPositionAttribute);
         GLES20.glEnableVertexAttribArray(mNormalAttribute);
-        GLES20.glEnableVertexAttribArray(mTexCoordAttribute);
 
         if (mBlendMode != null) {
             GLES20.glDepthMask(false);
@@ -350,9 +328,6 @@ public class ObjectRenderer {
         // Disable vertex arrays
         GLES20.glDisableVertexAttribArray(mPositionAttribute);
         GLES20.glDisableVertexAttribArray(mNormalAttribute);
-        GLES20.glDisableVertexAttribArray(mTexCoordAttribute);
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
 
         ShaderUtil.checkGLError(TAG, "After draw");
     }
@@ -362,5 +337,12 @@ public class ObjectRenderer {
         v[0] *= reciprocalLength;
         v[1] *= reciprocalLength;
         v[2] *= reciprocalLength;
+    }
+
+    private static void colorRgbaToFloat(float[] planeColor, int colorRgba) {
+        planeColor[0] = ((float) ((colorRgba >> 24) & 0xff)) / 255.0f;
+        planeColor[1] = ((float) ((colorRgba >> 16) & 0xff)) / 255.0f;
+        planeColor[2] = ((float) ((colorRgba >>  8) & 0xff)) / 255.0f;
+        planeColor[3] = ((float) ((colorRgba >>  0) & 0xff)) / 255.0f;
     }
 }
