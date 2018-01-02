@@ -52,6 +52,11 @@ public class EarthRenderer extends ObjectRenderer {
     private float[] texCoords = new float[texCoordsSize];
     private short[] indices = new short[indicesSize];
 
+
+
+
+    private boolean isPositioning = true; // indicates whether the plane is being positioned
+
     public void create_sphere() {
         // Credit mostly to:
         // https://stackoverflow.com/questions/26116923/modern-opengl-draw-a-sphere-and-cylinder
@@ -237,8 +242,16 @@ public class EarthRenderer extends ObjectRenderer {
                 mViewLightDirection[0], mViewLightDirection[1], mViewLightDirection[2], lightIntensity);
 
         // Set the object material properties.
-        GLES20.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
-                mSpecularPower);
+        if (isPositioning) {
+            // When positioning, the wireframe appears dark so it's necessary to amplify the
+            // material properties to make it appear more vibrant.
+            GLES20.glUniform4f(mMaterialParametersUniform, mAmbient * 5, mDiffuse * 10,
+                    mSpecular * 3, mSpecularPower);
+        } else {
+            GLES20.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
+                    mSpecularPower);
+        }
+
 
         // Attach the object texture.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -284,7 +297,14 @@ public class EarthRenderer extends ObjectRenderer {
         }
 
         GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, mIndexBufferId);
-        GLES20.glDrawElements(GLES20.GL_TRIANGLES, mIndexCount, GLES20.GL_UNSIGNED_SHORT, 0);
+
+        // When positioning, draw a wireframe earth. Just looks kinda cool
+        if (isPositioning) {
+            GLES20.glDrawElements(GLES20.GL_LINE_STRIP, mIndexCount, GLES20.GL_UNSIGNED_SHORT, 0);
+
+        } else {
+            GLES20.glDrawElements(GLES20.GL_TRIANGLES, mIndexCount, GLES20.GL_UNSIGNED_SHORT, 0);
+        }
         GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
 
         if (mBlendMode != null) {

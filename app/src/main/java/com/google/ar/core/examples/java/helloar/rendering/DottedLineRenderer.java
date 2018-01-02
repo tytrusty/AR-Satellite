@@ -21,15 +21,16 @@ public class DottedLineRenderer {
 
     private static final String TAG = SatelliteRenderer.class.getSimpleName();
 
-    static float origin[] = { 0.0f, 0.0f };
+    private static float mOrigin[] = { 0.0f, 0.0f };
 
-    static float lineVertices[] = {
-            0.0f, -1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f
+    private static float mLineVertices[] = {
+            0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f
     };
 
     private static final int COORDS_PER_VERTEX = 3;
-    private final int vertexCount = lineVertices.length / COORDS_PER_VERTEX;
+    private static final float SCALE_FACTOR = 3.0f;
+    private final int vertexCount = mLineVertices.length / COORDS_PER_VERTEX;
     private final int stride      = COORDS_PER_VERTEX * 4; // sizeof(float) == 4 per vertex
 
     // Object vertex buffer variables.
@@ -49,8 +50,6 @@ public class DottedLineRenderer {
     // Shader location: origin of line (center point)
     private int mOriginUniform;
 
-    private SatelliteRenderer.BlendMode mBlendMode = null;
-
     // Temporary matrices allocated here to reduce number of allocations for each frame.
     private float[] mModelMatrix = new float[16];
     private float[] mModelViewMatrix = new float[16];
@@ -66,11 +65,11 @@ public class DottedLineRenderer {
      * @param context Context for loading the shader and below-named model and texture assets.
      */
     public void createOnGlThread(Context context) throws IOException {
-        ByteBuffer buf = ByteBuffer.allocateDirect(lineVertices.length * 4);
+        ByteBuffer buf = ByteBuffer.allocateDirect(mLineVertices.length * 4);
         buf.order(ByteOrder.nativeOrder());
 
         FloatBuffer vertices = buf.asFloatBuffer();
-        vertices.put(lineVertices);
+        vertices.put(mLineVertices);
         vertices.position(0);
 
         int[] buffer = new int[1];
@@ -82,9 +81,10 @@ public class DottedLineRenderer {
         final int totalBytes = 4 * vertices.limit();
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, null, GLES20.GL_STATIC_DRAW);
-        GLES20.glBufferSubData(
-                GLES20.GL_ARRAY_BUFFER, mVerticesBaseAddress, 4 * vertices.limit(), vertices);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, vertices, GLES20.GL_STATIC_DRAW);
+        //TODO Remove sub buffer IDIOT
+//        GLES20.glBufferSubData(
+//                GLES20.GL_ARRAY_BUFFER, mVerticesBaseAddress, 4 * vertices.limit(), vertices);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
         ShaderUtil.checkGLError(TAG, "OBJ buffer load");
@@ -116,6 +116,21 @@ public class DottedLineRenderer {
         Matrix.setIdentityM(mModelMatrix, 0);
     }
 
+    /**
+     * Updates the lines origin and end points
+     *
+     * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
+     * @see android.opengl.Matrix
+     */
+    public void updateModelMatrix(float[] modelMatrix) {
+
+        float[] scaleMatrix = new float[16];
+        Matrix.setIdentityM(scaleMatrix, 0);
+        scaleMatrix[0]  = SCALE_FACTOR;
+        scaleMatrix[5]  = SCALE_FACTOR;
+        scaleMatrix[10] = SCALE_FACTOR;
+        Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+    }
 
     /**
      * Draws the line.
@@ -150,7 +165,7 @@ public class DottedLineRenderer {
         GLES20.glUniform4fv(mColorUniform, 1, mColor, 0);
 
         // Set origin
-        GLES20.glUniform2fv(mOriginUniform, 1, origin, 0);
+        GLES20.glUniform2fv(mOriginUniform, 1, mOrigin, 0);
 
         // Enable vertex arrays
         GLES20.glEnableVertexAttribArray(mPositionAttribute);
