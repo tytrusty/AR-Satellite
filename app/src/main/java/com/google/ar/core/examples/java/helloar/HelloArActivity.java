@@ -40,6 +40,7 @@ import com.google.ar.core.Session;
 import com.google.ar.core.Trackable;
 import com.google.ar.core.Trackable.TrackingState;
 import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
+import com.google.ar.core.examples.java.helloar.rendering.DottedLineRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer.BlendMode;
@@ -74,6 +75,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     private final EarthRenderer mVirtualObject = new EarthRenderer();
+    private final DottedLineRenderer mLineRenderer = new DottedLineRenderer();
     private final SatelliteRenderer mVirtualObjectShadow = new SatelliteRenderer();
     private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
@@ -254,11 +256,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // Prepare the other rendering objects.
         try {
             mVirtualObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
-
             mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
             mVirtualObjectShadow.createOnGlThread(/*context=*/this,"iss.obj", 0xCC0000FF);
             mVirtualObjectShadow.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
+
+            mLineRenderer.createOnGlThread(this);
         } catch (IOException e) {
             Log.e(TAG, "Failed to read obj file");
         }
@@ -379,6 +382,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
                 mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
+
+                mLineRenderer.draw(viewmtx, projmtx);
             }
 
         } catch (Throwable t) {

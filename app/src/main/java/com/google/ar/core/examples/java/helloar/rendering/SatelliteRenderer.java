@@ -72,7 +72,6 @@ public class SatelliteRenderer {
     private int mIndexCount;
 
     private int mProgram;
-    private int[] mTextures = new int[1];
 
     // Shader location: model view projection matrix.
     private int mModelViewUniform;
@@ -97,7 +96,7 @@ public class SatelliteRenderer {
     private float[] mModelMatrix = new float[16];
     private float[] mModelViewMatrix = new float[16];
     private float[] mModelViewProjectionMatrix = new float[16];
-    private float[] mPlaneColor = new float[4];
+    private float[] mColor = new float[4];
 
     // Set some default material properties to use for lighting.
     private float mAmbient = 0.3f;
@@ -117,7 +116,7 @@ public class SatelliteRenderer {
     public void createOnGlThread(Context context, String objAssetName, int color) throws IOException {
 
         // Store color integer in a vector for fragment shader
-        colorRgbaToFloat(mPlaneColor, color);
+        colorRgbaToFloat(mColor, color);
 
         // Read the obj file.
         InputStream objInputStream = context.getAssets().open(objAssetName);
@@ -294,8 +293,8 @@ public class SatelliteRenderer {
         GLES20.glUniformMatrix4fv(
                 mModelViewProjectionUniform, 1, false, mModelViewProjectionMatrix, 0);
 
-        // Set plane color. Computed deterministically from the Plane index.
-        GLES20.glUniform4fv(mColorUniform, 1, mPlaneColor, 0);
+        // Set model color
+        GLES20.glUniform4fv(mColorUniform, 1, mColor, 0);
 
         // Enable vertex arrays
         GLES20.glEnableVertexAttribArray(mPositionAttribute);
