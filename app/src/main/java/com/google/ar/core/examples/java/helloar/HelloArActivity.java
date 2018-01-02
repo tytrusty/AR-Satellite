@@ -21,6 +21,8 @@ import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.Snackbar;
+import android.support.v4.math.MathUtils;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -54,6 +56,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import static android.view.MotionEvent.INVALID_POINTER_ID;
+
 /**
  * This is a simple example that shows how to create an augmented reality (AR) application using the
  * ARCore API. The application will display any detected planes and will allow the user to tap on a
@@ -72,7 +76,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private DisplayRotationHelper mDisplayRotationHelper;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
-    private final EarthRenderer mVirtualObject = new EarthRenderer();
+    private final EarthRenderer mEarthObject = new EarthRenderer();
     private final DottedLineRenderer mLineRenderer = new DottedLineRenderer();
     private final SatelliteRenderer mVirtualObjectShadow = new SatelliteRenderer();
     private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
@@ -85,8 +89,16 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final ArrayBlockingQueue<MotionEvent> mQueuedSingleTaps = new ArrayBlockingQueue<>(16);
     private final ArrayList<Anchor> mAnchors = new ArrayList<>();
 
-    float mScaleFactor = 0.1f;
+    private final float TRANSLATE_MIN   = -1.0f;
+    private final float TRANSLATE_MAX   = 1.0f;
+    private final float TRANSLATE_SPEED = 0.002f;
 
+    private float mScaleFactor = 0.15f;
+    private float mTranslateFactor = -0.5f;
+    // The ID of the current pointer that is dragging
+    private int mActivePointerID = INVALID_POINTER_ID;
+    private float mPrevX;
+    private float mPrevY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,14 +120,15 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             }
         });
 
-        mScaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.OnScaleGestureListener() {
+        mScaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override
             public boolean onScale(ScaleGestureDetector scaleGestureDetector) {
+
                 mScaleFactor *= scaleGestureDetector.getScaleFactor();
-                System.out.println("new scalefactor: " + mScaleFactor);
 
                 // Don't let the object get too small or too large.
                 mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
+                // Log.i(TAG, "mScaleFactor: " + mScaleFactor);
                 return true;
             }
 
@@ -132,7 +145,66 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 mScaleDetector.onTouchEvent(event);
-                return mGestureDetector.onTouchEvent(event);
+                mGestureDetector.onTouchEvent(event);
+
+                if (mScaleDetector.isInProgress()) {
+                    mActivePointerID = INVALID_POINTER_ID;
+                    return true;
+                }
+
+                /* Source: https://developer.android.com/training/gestures/scale.html */
+                final int action = event.getAction();
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN: {
+                        final int pointerIndex = event.getActionIndex();
+
+                        final float x = event.getX(pointerIndex);
+                        final float y = event.getY(pointerIndex);
+
+                        mPrevX = x;
+                        mPrevY = y;
+                        mActivePointerID = event.getPointerId(pointerIndex);
+                        break;
+                    } case MotionEvent.ACTION_MOVE : {
+                        if (mActivePointerID == INVALID_POINTER_ID) break;
+                        final int pointerIndex = event.findPointerIndex(mActivePointerID);
+                        final float x = event.getX(pointerIndex);
+                        final float y = event.getY(pointerIndex);
+
+                        // Calculate change
+                        final float dx = x - mPrevX;
+                        final float dy = y - mPrevY;
+
+                        mPrevX = x;
+                        mPrevY = y;
+
+                        mTranslateFactor += -dy * TRANSLATE_SPEED; // flip Y
+                        mTranslateFactor  = MathUtils.clamp(mTranslateFactor, TRANSLATE_MIN, TRANSLATE_MAX);
+
+                        Log.i(TAG, "TranslateFactor: " + mTranslateFactor);
+                        break;
+                    } case MotionEvent.ACTION_UP: {
+                        mActivePointerID = INVALID_POINTER_ID;
+                        break;
+                    } case MotionEvent.ACTION_CANCEL: {
+                        mActivePointerID = INVALID_POINTER_ID;
+                        break;
+                    } case MotionEvent.ACTION_POINTER_UP: {
+                        if (mActivePointerID == INVALID_POINTER_ID) break;
+                        final int pointerIndex = event.getActionIndex();
+                        final int pointerID = event.getPointerId(pointerIndex);
+
+                        // If the active pointer is being released
+                        if (pointerID == mActivePointerID) {
+                            final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+                            mPrevX = event.getX(newPointerIndex);
+                            mPrevY = event.getY(newPointerIndex);
+                            mActivePointerID = event.getPointerId(newPointerIndex);
+                        }
+                        break;
+                    }
+                }
+                return true;
             }
         });
 
@@ -253,8 +325,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // Prepare the other rendering objects.
         try {
-            mVirtualObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
-            mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
+            mEarthObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
+            mEarthObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
             mVirtualObjectShadow.createOnGlThread(/*context=*/this,"iss.obj", 0xCC0000FF);
             mVirtualObjectShadow.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
@@ -376,11 +448,11 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
                 // Update and draw the model and its shadow.
 //                System.out.println("Scale: " + mScaleFactor);
-                mVirtualObject.updateModelMatrix(mAnchorMatrix, mScaleFactor);
+                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
                 mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
                 mLineRenderer.updateModelMatrix(mAnchorMatrix);
 
-                mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
+                mEarthObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
                 mLineRenderer.draw(viewmtx, projmtx);
             }

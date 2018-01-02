@@ -212,6 +212,35 @@ public class EarthRenderer extends ObjectRenderer {
         Matrix.setIdentityM(mModelMatrix, 0);
     }
 
+    private float angle = 0.0f;
+    /**
+     * Updates the object model matrix and applies scaling.
+     *
+     * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
+     * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
+     * @param translateFactor A constant scalar to apply for translation along the y-axis
+     * @see android.opengl.Matrix
+     */
+    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor) {
+        // Matrix structure:
+        // [ 0  4  8   12 ]
+        // [ 1  5  9   13 ]
+        // [ 2  6  10  14 ]
+        // [ 3  7  11  15 ]
+        // 0, 5, 10 may be used to scale x, y, z respectively.
+        // 12, 13, 14 may be used to translate along x, y, z respectively
+        float[] scaleMatrix = new float[16];
+        Matrix.setIdentityM(scaleMatrix, 0);
+        scaleMatrix[0]  = scaleFactor;
+        scaleMatrix[5]  = scaleFactor;
+        scaleMatrix[10] = scaleFactor;
+        Matrix.rotateM(modelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
+        Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+
+        // Translate along the y-axis only
+        mModelMatrix[13] = translateFactor;
+    }
+
     /**
      * Draws the model.
      *
