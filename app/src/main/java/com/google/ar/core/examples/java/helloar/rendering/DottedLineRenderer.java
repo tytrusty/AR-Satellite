@@ -29,13 +29,10 @@ public class DottedLineRenderer {
     };
 
     private static final int COORDS_PER_VERTEX = 3;
-    private static final float SCALE_FACTOR = 3.0f;
-    private final int vertexCount = mLineVertices.length / COORDS_PER_VERTEX;
-    private final int stride      = COORDS_PER_VERTEX * 4; // sizeof(float) == 4 per vertex
+    private static final float SCALE_FACTOR = 2.5f;
 
     // Object vertex buffer variables.
     private int mVertexBufferId;
-    private int mVerticesBaseAddress;
     private int mProgram;
 
     // Shader location: model view projection matrix.
@@ -55,7 +52,6 @@ public class DottedLineRenderer {
     private float[] mModelViewMatrix = new float[16];
     private float[] mModelViewProjectionMatrix = new float[16];
     private float[] mColor = {1.0f, 1.0f, 1.0f, 1.0f};
-
 
     public DottedLineRenderer() {}
 
@@ -77,14 +73,10 @@ public class DottedLineRenderer {
         mVertexBufferId = buffer[0];
 
         // Load vertex buffer
-        mVerticesBaseAddress = 0;
         final int totalBytes = 4 * vertices.limit();
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, vertices, GLES20.GL_STATIC_DRAW);
-        //TODO Remove sub buffer IDIOT
-//        GLES20.glBufferSubData(
-//                GLES20.GL_ARRAY_BUFFER, mVerticesBaseAddress, 4 * vertices.limit(), vertices);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
         ShaderUtil.checkGLError(TAG, "OBJ buffer load");
@@ -154,8 +146,7 @@ public class DottedLineRenderer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
 
         GLES20.glVertexAttribPointer(
-                mPositionAttribute, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, mVerticesBaseAddress);
-
+                mPositionAttribute, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, 0);
 
         // Set the ModelViewProjection matrix in the shader.
         GLES20.glUniformMatrix4fv(

@@ -245,8 +245,8 @@ public class EarthRenderer extends ObjectRenderer {
         if (isPositioning) {
             // When positioning, the wireframe appears dark so it's necessary to amplify the
             // material properties to make it appear more vibrant.
-            GLES20.glUniform4f(mMaterialParametersUniform, mAmbient * 5, mDiffuse * 10,
-                    mSpecular * 3, mSpecularPower);
+            GLES20.glUniform4f(mMaterialParametersUniform, mAmbient * 10, mDiffuse * 10,
+                    mSpecular * 10, mSpecularPower);
         } else {
             GLES20.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
                     mSpecularPower);

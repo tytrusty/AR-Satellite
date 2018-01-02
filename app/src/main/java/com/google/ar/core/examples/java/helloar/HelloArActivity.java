@@ -42,8 +42,6 @@ import com.google.ar.core.Trackable.TrackingState;
 import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.DottedLineRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
-import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer;
-import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer.BlendMode;
 import com.google.ar.core.examples.java.helloar.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PointCloudRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
@@ -377,12 +375,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 anchor.getPose().toMatrix(mAnchorMatrix, 0);
 
                 // Update and draw the model and its shadow.
-                System.out.println("Scale: " + mScaleFactor);
+//                System.out.println("Scale: " + mScaleFactor);
                 mVirtualObject.updateModelMatrix(mAnchorMatrix, mScaleFactor);
                 mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
+                mLineRenderer.updateModelMatrix(mAnchorMatrix);
+
                 mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
-
                 mLineRenderer.draw(viewmtx, projmtx);
             }
 
