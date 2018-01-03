@@ -16,6 +16,7 @@
 
 package com.google.ar.core.examples.java.helloar;
 
+import android.nfc.Tag;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -30,7 +31,12 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.Interpolator;
+import android.widget.Button;
 import android.widget.Toast;
+
+import com.daimajia.androidanimations.library.Techniques;
+import com.daimajia.androidanimations.library.YoYo;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Camera;
 import com.google.ar.core.Config;
@@ -41,6 +47,8 @@ import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
 import com.google.ar.core.Trackable;
 import com.google.ar.core.Trackable.TrackingState;
+import com.google.ar.core.examples.java.helloar.SGP4.SGP4track;
+import com.google.ar.core.examples.java.helloar.SGP4.TLEdata;
 import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.DottedLineRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
@@ -78,9 +86,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     private final EarthRenderer mEarthObject = new EarthRenderer();
     private final DottedLineRenderer mLineRenderer = new DottedLineRenderer();
-    private final SatelliteRenderer mVirtualObjectShadow = new SatelliteRenderer();
     private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
+
+    Satellite mSat;
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] mAnchorMatrix = new float[16];
@@ -93,6 +102,9 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final float TRANSLATE_MAX   = 1.0f;
     private final float TRANSLATE_SPEED = 0.002f;
 
+    private final float SCALE_MAX = 5.0f;
+    private final float SCALE_MIN = 0.1f;
+
     private float mScaleFactor = 0.15f;
     private float mTranslateFactor = -0.5f;
     // The ID of the current pointer that is dragging
@@ -100,12 +112,27 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private float mPrevX;
     private float mPrevY;
 
+    private boolean isPositioning = true;
+    private Button mConfirmButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSurfaceView = findViewById(R.id.surfaceview);
         mDisplayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
+
+        mConfirmButton = findViewById(R.id.confirm_button);
+        mConfirmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                YoYo.with(Techniques.FadeOutDown)
+                        .duration(500)
+                        .playOn(mConfirmButton);
+                isPositioning = false;
+            }
+        });
+
 
         // Set up tap listener.
         mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -127,8 +154,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mScaleFactor *= scaleGestureDetector.getScaleFactor();
 
                 // Don't let the object get too small or too large.
-                mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
-                // Log.i(TAG, "mScaleFactor: " + mScaleFactor);
+                mScaleFactor = Math.max(SCALE_MIN, Math.min(mScaleFactor, SCALE_MAX));
+                Log.i(TAG, "mScaleFactor: " + mScaleFactor);
                 return true;
             }
 
@@ -328,8 +355,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             mEarthObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
             mEarthObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mVirtualObjectShadow.createOnGlThread(/*context=*/this,"iss.obj", 0xCC0000FF);
-            mVirtualObjectShadow.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
+            //mVirtualObjectShadow.createOnGlThread(/*context=*/this,"iss.obj", 0xCC0000FF);
+            //mVirtualObjectShadow.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
 
             mLineRenderer.createOnGlThread(this);
         } catch (IOException e) {
@@ -341,6 +368,15 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             Log.e(TAG, "Failed to read plane texture");
         }
         mPointCloud.createOnGlThread(/*context=*/this);
+
+        TLEdata tle = new TLEdata(
+                "0 ISS (ZARYA)",
+                "1 25544U 98067A   18002.64937503  .00001733  00000-0  33272-4 0  9993",
+                "2 25544  51.6404 123.9633 0002828 329.6971 162.7178 15.54246569 92770)"
+        );
+
+        mSat = new Satellite(this, tle);
+
     }
 
     @Override
@@ -413,15 +449,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             // Compute lighting from average intensity of the image.
             final float lightIntensity = frame.getLightEstimate().getPixelIntensity();
 
-            // Visualize tracked points.
-            PointCloud pointCloud = frame.acquirePointCloud();
-            mPointCloud.update(pointCloud);
-            mPointCloud.draw(viewmtx, projmtx);
-
-            // Application is responsible for releasing the point cloud resources after
-            // using it.
-            pointCloud.release();
-
             // Check if we detected at least one plane. If so, hide the loading message.
             if (mMessageSnackbar != null) {
                 for (Plane plane : mSession.getAllTrackables(Plane.class)) {
@@ -433,9 +460,23 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 }
             }
 
-            // Visualize planes.
-            mPlaneRenderer.drawPlanes(
-                mSession.getAllTrackables(Plane.class), camera.getDisplayOrientedPose(), projmtx);
+            // Visualize planes and point cloud if not in positioning mode
+            if (isPositioning) {
+                // Visualize tracked points.
+                PointCloud pointCloud = frame.acquirePointCloud();
+                mPointCloud.update(pointCloud);
+                mPointCloud.draw(viewmtx, projmtx);
+
+                // Application is responsible for releasing the point cloud resources after
+                // using it.
+                pointCloud.release();
+
+                // Visualize Planes
+                mPlaneRenderer.drawPlanes(
+                        mSession.getAllTrackables(Plane.class),
+                        camera.getDisplayOrientedPose(), projmtx);
+            }
+
 
             // Visualize anchors created by touch.
             for (Anchor anchor : mAnchors) {
@@ -447,14 +488,21 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 anchor.getPose().toMatrix(mAnchorMatrix, 0);
 
                 // Update and draw the model and its shadow.
-//                System.out.println("Scale: " + mScaleFactor);
-                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
-                mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
-                mLineRenderer.updateModelMatrix(mAnchorMatrix);
+                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, isPositioning);
+                mEarthObject.draw(viewmtx, projmtx, lightIntensity, isPositioning);
 
-                mEarthObject.draw(viewmtx, projmtx, lightIntensity);
-                mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
-                mLineRenderer.draw(viewmtx, projmtx);
+                // mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
+                // mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
+
+                mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mSat.draw(viewmtx, projmtx, lightIntensity);
+
+                // Only render y-axis if in positioning stage
+                if (isPositioning) {
+                    mLineRenderer.updateModelMatrix(mAnchorMatrix);
+                    mLineRenderer.draw(viewmtx, projmtx);
+                }
+
             }
 
         } catch (Throwable t) {

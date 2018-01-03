@@ -25,4 +25,13 @@
         android:layout_height="fill_parent"
         android:layout_gravity="top" />
 
+    <Button
+        android:id="@+id/confirm_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="65dp"
+        android:text="Confirm Placement" />
+
 </RelativeLayout>

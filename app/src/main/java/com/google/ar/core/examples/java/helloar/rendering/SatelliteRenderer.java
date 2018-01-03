@@ -218,13 +218,25 @@ public class SatelliteRenderer {
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @see android.opengl.Matrix
      */
-    public void updateModelMatrix(float[] modelMatrix, float scaleFactor) {
+    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
+                                  double altitude) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0] = scaleFactor;
         scaleMatrix[5] = scaleFactor;
         scaleMatrix[10] = scaleFactor;
+//         Matrix.rotateM(modelMatrix, 0, (float) longitude, 0.0f, 1.0f, 0.0f);
+//        Matrix.rotateM(modelMatrix, 0, (float) latitude, 0.0f, 0.0f, 1.0f);
+
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+
+        // Translate along the y-axis only
+        mModelMatrix[13] = translateFactor;
+
+        //TODO do (altitude + Earth_Radius) / Earth_radius for translate
+        //TODO rotate the MV matrix not the M matrix
+        mModelMatrix[12] = -0.1f;
+
     }
 
     /**
@@ -252,7 +264,7 @@ public class SatelliteRenderer {
      * @param lightIntensity  Illumination intensity.  Combined with diffuse and specular material
      *     properties.
      * @see #setBlendMode(BlendMode)
-     * @see #updateModelMatrix(float[], float)
+     * @see #updateModelMatrix(float[], float, float, double)
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */

@@ -3,6 +3,7 @@ package com.google.ar.core.examples.java.helloar.rendering;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import android.util.Log;
 
 import com.google.ar.core.examples.java.helloar.R;
 
@@ -16,7 +17,6 @@ import java.nio.FloatBuffer;
  *
  * Created by TY on 1/1/2018.
  */
-
 public class DottedLineRenderer {
 
     private static final String TAG = SatelliteRenderer.class.getSimpleName();
@@ -115,7 +115,6 @@ public class DottedLineRenderer {
      * @see android.opengl.Matrix
      */
     public void updateModelMatrix(float[] modelMatrix) {
-
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0]  = SCALE_FACTOR;
@@ -132,7 +131,6 @@ public class DottedLineRenderer {
      * @see android.opengl.Matrix
      */
     public void draw(float[] cameraView, float[] cameraPerspective) {
-
         ShaderUtil.checkGLError(TAG, "Before draw");
 
         // Build the ModelView and ModelViewProjection matrices

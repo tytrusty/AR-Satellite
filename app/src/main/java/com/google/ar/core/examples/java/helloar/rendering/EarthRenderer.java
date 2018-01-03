@@ -36,9 +36,11 @@ import java.nio.ShortBuffer;
  * Renders an object loaded from an OBJ file in OpenGL.
  */
 public class EarthRenderer extends ObjectRenderer {
+    public static final float EARTH_RADIUS = 6.371f; // in kilometers
     private static final String TAG = EarthRenderer.class.getSimpleName();
 
     public EarthRenderer() {}
+
 
     private final int stacks = 40;
     private final int slices = 40;
@@ -52,12 +54,7 @@ public class EarthRenderer extends ObjectRenderer {
     private float[] texCoords = new float[texCoordsSize];
     private short[] indices = new short[indicesSize];
 
-
-
-
-    private boolean isPositioning = true; // indicates whether the plane is being positioned
-
-    public void create_sphere() {
+    private void create_sphere() {
         // Credit mostly to:
         // https://stackoverflow.com/questions/26116923/modern-opengl-draw-a-sphere-and-cylinder
         int vertex_idx = 0;
@@ -219,9 +216,11 @@ public class EarthRenderer extends ObjectRenderer {
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @param translateFactor A constant scalar to apply for translation along the y-axis
+     * @param isPositioning Indicates whether earth is in positioning stage.
      * @see android.opengl.Matrix
      */
-    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor) {
+    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
+                                  boolean isPositioning) {
         // Matrix structure:
         // [ 0  4  8   12 ]
         // [ 1  5  9   13 ]
@@ -234,7 +233,15 @@ public class EarthRenderer extends ObjectRenderer {
         scaleMatrix[0]  = scaleFactor;
         scaleMatrix[5]  = scaleFactor;
         scaleMatrix[10] = scaleFactor;
-        Matrix.rotateM(modelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
+
+        Matrix.rotateM(modelMatrix, 0, angle, 0.0f, 1.0f, 0.0f);
+
+        // Rotate if in positioning mode
+        if (isPositioning) {
+            angle++;
+        } else {
+            angle = 0;
+        }
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
 
         // Translate along the y-axis only
@@ -248,12 +255,13 @@ public class EarthRenderer extends ObjectRenderer {
      * @param cameraPerspective  A 4x4 projection matrix, in column-major order.
      * @param lightIntensity  Illumination intensity.  Combined with diffuse and specular material
      *     properties.
+     * @param isPositioning Indicates whether earth is in positioning stage. Will draw wireframe if so.
      * @see #setBlendMode(BlendMode)
      * @see #updateModelMatrix(float[], float)
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */
-    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity) {
+    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity, boolean isPositioning) {
 
         ShaderUtil.checkGLError(TAG, "Before draw");
 

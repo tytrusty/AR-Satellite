@@ -38,9 +38,9 @@ public class SGP4track {
      * Take in TLE information and extract a satellite
      *
      * @param tleData The raw TLE string data
-     * @return a satellite with the necessary com.google.ar.core.examples.java.helloar.SGP4 data OR null if failure to initialize
+     * @return a satellite data object OR null if failure to initialize
      */
-    public static Satellite initSatellite(TLEdata tleData) {
+    public static SGP4SatData initSatellite(TLEdata tleData) {
         // Read TLE information and initialize com.google.ar.core.examples.java.helloar.SGP4 model
         SGP4SatData data = new SGP4SatData();
         boolean result = SGP4utils.readTLEandIniSGP4(
@@ -55,26 +55,26 @@ public class SGP4track {
             Log.e(TAG, "Error reading/initializing TLE. Code: " + data.error);
             return null;
         } else {
-            return new Satellite(data);
+            return data;
         }
     }
 
 
     /**
-     * Executes com.google.ar.core.examples.java.helloar.SGP4 propogation algorithm to determine orbital values and coordinates for the
+     * Executes SGP4 algorithm to determine orbital values and coordinates for the
      * provided satellite.
      * @param sat satellite for which data will be set
      */
-    public static void trackSat(Satellite sat) {
+    public static void updateSatellite(Satellite sat) {
 
         // prop to current date
         double propJD = getJulianTime();
-        double minutesSinceEpoch = (propJD - sat.data.jdsatepoch) * 24.0 * 60.0;
+        double minutesSinceEpoch = (propJD - sat.mData.jdsatepoch) * 24.0 * 60.0;
 
         double[] pos = new double[3];
         double[] vel = new double[3];
 
-        boolean result = SGP4unit.sgp4(sat.data, minutesSinceEpoch, pos, vel);
+        boolean result = SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
         if (!result) {
             Log.e(TAG,"sgp4 - Error in Sat Prop");
             return;
