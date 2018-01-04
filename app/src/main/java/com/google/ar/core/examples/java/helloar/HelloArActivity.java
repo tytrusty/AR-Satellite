@@ -486,13 +486,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 // Get the current pose of an Anchor in world space. The Anchor pose is updated
                 // during calls to session.update() as ARCore refines its estimate of the world.
                 anchor.getPose().toMatrix(mAnchorMatrix, 0);
+                float[] origin = new float[4];
+                anchor.getPose().getTranslation(origin, 0);
+                Log.i(TAG, "getTranslation: " + origin[0] + ", " + origin[1] + ", " + origin[2]);
 
                 // Update and draw the model and its shadow.
                 mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, isPositioning);
                 mEarthObject.draw(viewmtx, projmtx, lightIntensity, isPositioning);
-
-                // mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
-                // mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
 
                 mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor);
                 mSat.draw(viewmtx, projmtx, lightIntensity);

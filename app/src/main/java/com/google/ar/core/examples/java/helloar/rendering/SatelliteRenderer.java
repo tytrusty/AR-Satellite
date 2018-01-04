@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
+import android.util.Log;
 
 import com.google.ar.core.examples.java.helloar.R;
 
@@ -218,24 +219,61 @@ public class SatelliteRenderer {
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @see android.opengl.Matrix
      */
+    float angle = 0.0f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
-                                  double altitude) {
+                                  double altitude,
+                                  double latitude, double longitude) {
         float[] scaleMatrix = new float[16];
+        float[] rotateMatrix = new float[16];
+        float[] origin = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0] = scaleFactor;
         scaleMatrix[5] = scaleFactor;
         scaleMatrix[10] = scaleFactor;
-//         Matrix.rotateM(modelMatrix, 0, (float) longitude, 0.0f, 1.0f, 0.0f);
-//        Matrix.rotateM(modelMatrix, 0, (float) latitude, 0.0f, 0.0f, 1.0f);
 
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+//        mModelMatrix[12] = -0.1f;
+        mModelMatrix[13] = translateFactor;
+//        Matrix.rotateM(mModelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
+
+        //Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0, -0.1f, 0, 0);
+
+
+        Matrix.multiplyMV(origin, 0, mModelMatrix, 0, origin, 0);
+
+
+//        float[] translateMatrix = new float[16];
+//        Matrix.setIdentityM(translateMatrix, 0);
+//        Matrix.translateM(translateMatrix, 0, translateMatrix, 0, origin[0], origin[1], origin[2]);
+          Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0, -0.1f, 0, 0);
+//
+//        Matrix.multiplyMM(mModelMatrix, 0, mModelMatrix, 0, translateMatrix, 0);
+        Matrix.rotateM(mModelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
+//        //mModelMatrix[12] = -0.1f;
+//
+        Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0, -origin[0], -origin[1], -origin[2]);
+
+        //Matrix.invertM(translateMatrix, 0, translateMatrix, 0);
+        //Matrix.multiplyMM(mModelMatrix, 0, mModelMatrix, 0, translateMatrix, 0);
+
+
+
+//        Log.i(TAG, "ORIGIN: " + origin[0] + ", " + origin[1] + ", " + origin[2]);
+
+
 
         // Translate along the y-axis only
-        mModelMatrix[13] = translateFactor;
+//
+//        //TODO do (altitude + Earth_Radius) / Earth_radius for translate
+//        mModelMatrix[12] = -0.1f;
 
-        //TODO do (altitude + Earth_Radius) / Earth_radius for translate
-        //TODO rotate the MV matrix not the M matrix
-        mModelMatrix[12] = -0.1f;
+
+
+
+        // Matrix.rotateM(mModelViewMatrix, 0, (float) longitude, 0.0f, 1.0f, 0.0f);
+        // Matrix.rotateM(mModelViewMatrix, 0, (float) latitude, 0.0f, 0.0f, 1.0f);
 
     }
 
@@ -264,7 +302,7 @@ public class SatelliteRenderer {
      * @param lightIntensity  Illumination intensity.  Combined with diffuse and specular material
      *     properties.
      * @see #setBlendMode(BlendMode)
-     * @see #updateModelMatrix(float[], float, float, double)
+     * @see #updateModelMatrix(float[], float, float, double, double, double)
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */

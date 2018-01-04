@@ -233,8 +233,8 @@ public class EarthRenderer extends ObjectRenderer {
         scaleMatrix[0]  = scaleFactor;
         scaleMatrix[5]  = scaleFactor;
         scaleMatrix[10] = scaleFactor;
-
-        Matrix.rotateM(modelMatrix, 0, angle, 0.0f, 1.0f, 0.0f);
+        //TODO don't rotate modelMatrix -- fuckin up the pointer
+        Matrix.rotateM(mModelMatrix, 0, angle, 0.0f, 1.0f, 0.0f);
 
         // Rotate if in positioning mode
         if (isPositioning) {
