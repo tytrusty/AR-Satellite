@@ -6,15 +6,20 @@ package com.google.ar.core.examples.java.helloar.SGP4;
 
 import android.util.Log;
 
+import com.google.ar.core.examples.java.helloar.Position;
 import com.google.ar.core.examples.java.helloar.Satellite;
 import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.TimeZone;
 
 public class SGP4track {
 
     private static final String TAG = SatelliteRenderer.class.getSimpleName();
+
+    private static final double julMinute = 1.0 / ( 24.0 * 60);
 
     public static double getJulianTime() {
         // prop to a given date  -- This is out of loop because unnecessary to calculate each time
@@ -83,16 +88,13 @@ public class SGP4track {
         // PM of 0,0 is more consistent with online trackers
         double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, propJD, 86400.87);
         double[] longLat = CoordConvert.ecefToLongLat(ecefPos, propJD);
-        double latitude = longLat[1];
-        double longitude = longLat[2];
-        sat.setLatitude(latitude);
-        sat.setLongitude(longitude);
+        sat.setLatitude(longLat[1]);
+        sat.setLongitude(longLat[2]);
         sat.setAltitude(longLat[3]);
         sat.setSpeed(Math.sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) * 1000);
     }
 
 
-    //TODO -- do it nerd
     /**
      * Calculates the path of a satellite for its entire period. Calculates the location of the
      * satellite at separate points throughout the period so that a vector may be created
@@ -103,64 +105,44 @@ public class SGP4track {
      */
     // Similar to trackSat, but returns an arraylist of coordinates
     // Points parameter represents the amount of points will be calculated for the list.
-//    public ArrayList<LatLng> getSatellitePath(Satellite sat, int points) {
-//
-//        ArrayList<LatLng> latLngArrayList = new ArrayList<>();
-//        LatLng latLng;
-//
-//        // tle data
-//        String name  = sat.getName();
-//        String line1 = sat.getLine1();
-//        String line2 = sat.getLine2();
-//
-//        // Getting sat data object and reading TLE
-//        SGP4SatData data = sat.getData();
-//        if (data == null) {
-//            data = new SGP4SatData();
-//
-//            // read in data and ini com.google.ar.core.examples.java.helloar.SGP4 data
-//            boolean result = SGP4utils.readTLEandIniSGP4(name, line1, line2, opsmode, gravconsttype, data);
-//            if(!result) Log.i("SGP4track:", "readTLEandIniSGP4 - Error Reading / Ini Data, error code: " + data.error);
-//
-//            sat.setData(data);
-//        }
-//
-//        // Sets mean motion if not already set.
-//        // Mean motion used to find orbital period, which is used in the path creation method.
-//        double meanMotion = Double.parseDouble(line2.substring(52, 63));
-//        sat.setMeanMotion(meanMotion);
-//
-//        double hoursPerOrbit  = 24 / meanMotion;                 // Hours per orbit as a decimal
-//        int hours             = (int) hoursPerOrbit;             // Hours ... Truncated decimal
-//        double minutesDecimal = (hoursPerOrbit - hours) * 60.0;  // Minutes expressed as decimal
-//        double orbitalPeriod  = minutesDecimal + (hours * 60);   // Orbital Period in minutes
-//
-//        int bound = (int) (orbitalPeriod / 2); // Array bounds. Split period in half because array goes from - to +
-//        double increment = orbitalPeriod / points;
-//
-//        // Calculates longitude and latitude at points for an entire orbital period.
-//        double newJD;
-//        for(double i = -bound; i < bound + 1; i += increment ) {
-//
-//            newJD = propJD + (julMinute * i);
-//
-//            double minutesSinceEpoch = (newJD - data.jdsatepoch) * 24.0 * 60.0;
-//            double[] pos = new double[3];
-//            double[] vel = new double[3];
-//
-//            boolean result = SGP4unit.sgp4(data, minutesSinceEpoch, pos, vel);
-//            if (!result) {
-//                System.out.println("Error in Sat Prop");
-//                //return;
-//            }
-//            double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, newJD, 86400.87); // PM of 0,0 is more consistent with online trackers
-//            double[] longLat = CoordConvert.ecefToLongLat(ecefPos, newJD);
-//            double latitude = longLat[1] * 180 / Math.PI;
-//            double longitude = longLat[2] * 180 / Math.PI;
-//            latLng = new LatLng(latitude,longitude);
-//            latLngArrayList.add(latLng);
-//        }
-//        return latLngArrayList;
-//    }
+    public static List<Position> getSatellitePath(Satellite sat, int points) {
+
+        List<Position> positions = new ArrayList<>();
+
+        // Sets mean motion if not already set.
+        // Mean motion used to find orbital period, which is used in the path creation method.
+        double meanMotion = sat.mData.no;
+        meanMotion = Double.parseDouble("2 25544  51.6408 118.2208 0002870 334.1045 127.0693 15.54253729 92951".substring(52, 63));
+
+
+        double hoursPerOrbit  = 24 / meanMotion;                 // Hours per orbit as a decimal
+        int hours             = (int) hoursPerOrbit;             // Hours ... Truncated decimal
+        double minutesDecimal = (hoursPerOrbit - hours) * 60.0;  // Minutes expressed as decimal
+        double orbitalPeriod  = minutesDecimal + (hours * 60);   // Orbital Period in minutes
+        System.out.println("orbitalPeriod: " + orbitalPeriod);
+
+        int bound = (int) (orbitalPeriod / 2); // Array bounds. Split period in half because array goes from - to +
+        double increment = orbitalPeriod / points;
+
+        // Calculates longitude and latitude at points for an entire orbital period.
+        double julTime = getJulianTime();
+        for(double i = -bound; i < bound + 1; i += increment ) {
+
+            double newJD = julTime + (julMinute * i);
+
+            double minutesSinceEpoch = (newJD - sat.mData.jdsatepoch) * 24.0 * 60.0;
+            double[] pos = new double[3];
+            double[] vel = new double[3];
+
+            boolean result = SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
+            double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, newJD, 86400.87); // PM of 0,0 is more consistent with online trackers
+            double[] longLat = CoordConvert.ecefToLongLat(ecefPos, newJD);
+            positions.add(new Position(longLat[1], longLat[2], longLat[3]));
+            //System.out.println("julTime: " + julTime + "   newJD: " + newJD);
+           // System.out.println("minutesSinceEpoch: " + minutesSinceEpoch);
+            //System.out.println("long: " + (longLat[2] * 180.0 / Math.PI));
+        }
+        return positions;
+    }
 
 }

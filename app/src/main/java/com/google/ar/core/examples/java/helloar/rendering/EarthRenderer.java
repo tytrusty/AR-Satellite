@@ -77,7 +77,7 @@ public class EarthRenderer extends ObjectRenderer {
                 float U = j / (float) slices;
                 float theta = U * (float) (Math.PI * 2);
 
-                // Calc The Vertex Positions
+                // Calc The Vertex Position
                 float y = (float) (Math.cos (phi));
                 float z = (float) (Math.sin (theta) * Math.sin  (phi));
                 float x = (float) (Math.cos (theta) * Math.sin  (phi));
@@ -97,7 +97,7 @@ public class EarthRenderer extends ObjectRenderer {
             }
         }
 
-        // Calc The Index Positions
+        // Calc The Index Position
         for (short i = 0; i < slices * stacks + slices; ++i){
             indices[indices_idx++] = (i);
             indices[indices_idx++] = (short) (i + slices + 1);
@@ -234,15 +234,15 @@ public class EarthRenderer extends ObjectRenderer {
         scaleMatrix[5]  = scaleFactor;
         scaleMatrix[10] = scaleFactor;
         //TODO don't rotate modelMatrix -- fuckin up the pointer
+        Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
         Matrix.rotateM(mModelMatrix, 0, angle, 0.0f, 1.0f, 0.0f);
 
         // Rotate if in positioning mode
         if (isPositioning) {
             angle++;
         } else {
-            angle = 0;
+            angle = 90.0f;
         }
-        Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
 
         // Translate along the y-axis only
         mModelMatrix[13] = translateFactor;

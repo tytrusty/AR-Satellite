@@ -19,8 +19,8 @@ public class Satellite {
     private static final String TAG = Satellite.class.getSimpleName();
 
     private int mID;           // Norad ID
-    private double mLatitude;  // latitude in degrees
-    private double mLongitude; // longitude in degrees
+    private double mLatitude;  // latitude in radians
+    private double mLongitude; // longitude in radians
     private double mAltitude;  // altitude in kilometers
     private double mSpeed;     // speed in m/s
     public SGP4SatData mData;  // SGP4 data

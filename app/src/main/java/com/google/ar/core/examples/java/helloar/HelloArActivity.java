@@ -52,6 +52,7 @@ import com.google.ar.core.examples.java.helloar.SGP4.TLEdata;
 import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.DottedLineRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
+import com.google.ar.core.examples.java.helloar.rendering.OrbitRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PointCloudRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
@@ -90,6 +91,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
 
     Satellite mSat;
+    OrbitRenderer mOrbitRender;
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] mAnchorMatrix = new float[16];
@@ -107,6 +109,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     private float mScaleFactor = 0.15f;
     private float mTranslateFactor = -0.5f;
+
     // The ID of the current pointer that is dragging
     private int mActivePointerID = INVALID_POINTER_ID;
     private float mPrevX;
@@ -350,13 +353,20 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
         }
 
+        TLEdata tle = new TLEdata(
+                "0 ISS (ZARYA)",
+                "1 25544U 98067A   18003.80114203  .00002109  00000-0  38925-4 0  9994",
+                "2 25544  51.6408 118.2208 0002870 334.1045 127.0693 15.54253729 92951"
+        );
+        mSat = new Satellite(this, tle);
+
         // Prepare the other rendering objects.
         try {
             mEarthObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
             mEarthObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            //mVirtualObjectShadow.createOnGlThread(/*context=*/this,"iss.obj", 0xCC0000FF);
-            //mVirtualObjectShadow.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
+            mOrbitRender = new OrbitRenderer(SGP4track.getSatellitePath(mSat, 40));
+            mOrbitRender.createOnGlThread(this);
 
             mLineRenderer.createOnGlThread(this);
         } catch (IOException e) {
@@ -368,15 +378,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             Log.e(TAG, "Failed to read plane texture");
         }
         mPointCloud.createOnGlThread(/*context=*/this);
-
-        TLEdata tle = new TLEdata(
-                "0 ISS (ZARYA)",
-                "1 25544U 98067A   18002.64937503  .00001733  00000-0  33272-4 0  9993",
-                "2 25544  51.6404 123.9633 0002828 329.6971 162.7178 15.54246569 92770)"
-        );
-
-        mSat = new Satellite(this, tle);
-
     }
 
     @Override
@@ -488,7 +489,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 anchor.getPose().toMatrix(mAnchorMatrix, 0);
                 float[] origin = new float[4];
                 anchor.getPose().getTranslation(origin, 0);
-                Log.i(TAG, "getTranslation: " + origin[0] + ", " + origin[1] + ", " + origin[2]);
 
                 // Update and draw the model and its shadow.
                 mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, isPositioning);
@@ -496,6 +496,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
                 mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor);
                 mSat.draw(viewmtx, projmtx, lightIntensity);
+                mOrbitRender.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mOrbitRender.draw(viewmtx, projmtx);
 
                 // Only render y-axis if in positioning stage
                 if (isPositioning) {

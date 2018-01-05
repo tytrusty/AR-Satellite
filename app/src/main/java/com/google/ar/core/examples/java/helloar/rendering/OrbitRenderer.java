@@ -3,33 +3,25 @@ package com.google.ar.core.examples.java.helloar.rendering;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
+import com.google.ar.core.examples.java.helloar.Position;
 import com.google.ar.core.examples.java.helloar.R;
+import com.google.ar.core.examples.java.helloar.SGP4.SGP4track;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.List;
 
 /**
- * I mean, the name says it all.
- *
- * Created by TY on 1/1/2018.
+ * Created by TY on 1/4/2018.
  */
-public class DottedLineRenderer {
+public class OrbitRenderer {
 
-    private static final String TAG = DottedLineRenderer.class.getSimpleName();
-
-    private static float mOrigin[] = { 0.0f, 0.0f };
-
-    private static float mLineVertices[] = {
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f
-    };
+    private static final String TAG = OrbitRenderer.class.getSimpleName();
 
     private static final int COORDS_PER_VERTEX = 3;
-    private static final float SCALE_FACTOR = 2.5f;
 
     // Object vertex buffer variables.
     private int mVertexBufferId;
@@ -44,16 +36,29 @@ public class DottedLineRenderer {
     // Shader location: color
     private int mColorUniform;
 
-    // Shader location: origin of line (center point)
-    private int mOriginUniform;
-
     // Temporary matrices allocated here to reduce number of allocations for each frame.
     private float[] mModelMatrix = new float[16];
     private float[] mModelViewMatrix = new float[16];
     private float[] mModelViewProjectionMatrix = new float[16];
-    private float[] mColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    private float[] mColor = {1.0f, 0.0f, 0.0f, 1.0f};
+    private float mLineVertices[];
 
-    public DottedLineRenderer() {}
+    public OrbitRenderer(List<Position> positions) {
+        initVertices(positions);
+    }
+
+    private void initVertices(List<Position> positions) {
+        mLineVertices = new float[positions.size() * 3];
+        int i = 0;
+        for (Position pos : positions) {
+            float x = (float) (Math.cos(pos.latitude) * Math.sin(pos.longitude));
+            float y = (float) (Math.sin(pos.latitude));
+            float z = (float) (Math.cos(pos.latitude) * Math.cos(pos.longitude)) ;
+            mLineVertices[i++] = x;
+            mLineVertices[i++] = y;
+            mLineVertices[i++] = z;
+        }
+    }
 
     /**
      * Creates and initializes OpenGL resources needed for rendering the model.
@@ -82,9 +87,9 @@ public class DottedLineRenderer {
         ShaderUtil.checkGLError(TAG, "OBJ buffer load");
 
         final int vertexShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_VERTEX_SHADER, R.raw.line_vertex);
+                GLES20.GL_VERTEX_SHADER, R.raw.passthrough_vertex);
         final int fragmentShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_FRAGMENT_SHADER, R.raw.line_fragment);
+                GLES20.GL_FRAGMENT_SHADER, R.raw.passthrough_color_fragment);
 
         mProgram = GLES20.glCreateProgram();
         GLES20.glAttachShader(mProgram, vertexShader);
@@ -101,8 +106,6 @@ public class DottedLineRenderer {
 
         mColorUniform = GLES20.glGetUniformLocation(mProgram, "u_Color");
 
-        mOriginUniform = GLES20.glGetUniformLocation(mProgram, "u_Origin");
-
         ShaderUtil.checkGLError(TAG, "Program parameters");
 
         Matrix.setIdentityM(mModelMatrix, 0);
@@ -114,13 +117,14 @@ public class DottedLineRenderer {
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
      * @see android.opengl.Matrix
      */
-    public void updateModelMatrix(float[] modelMatrix) {
+    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
-        scaleMatrix[0]  = SCALE_FACTOR;
-        scaleMatrix[5]  = SCALE_FACTOR;
-        scaleMatrix[10] = SCALE_FACTOR;
+        scaleMatrix[0]  = scaleFactor;
+        scaleMatrix[5]  = scaleFactor;
+        scaleMatrix[10] = scaleFactor;
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+        mModelMatrix[13] = translateFactor;
     }
 
     /**
@@ -153,14 +157,11 @@ public class DottedLineRenderer {
         // Set color
         GLES20.glUniform4fv(mColorUniform, 1, mColor, 0);
 
-        // Set origin
-        GLES20.glUniform2fv(mOriginUniform, 1, mOrigin, 0);
-
         // Enable vertex arrays
         GLES20.glEnableVertexAttribArray(mPositionAttribute);
 
         // Draw Line
-        GLES20.glDrawArrays(GLES20.GL_LINES, 0, 2);
+        GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, mLineVertices.length / COORDS_PER_VERTEX);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
         // Disable vertex arrays
