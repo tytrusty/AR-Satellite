@@ -4,9 +4,8 @@ import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 
-import com.google.ar.core.examples.java.helloar.Position;
+import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.R;
-import com.google.ar.core.examples.java.helloar.SGP4.SGP4track;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -43,20 +42,20 @@ public class OrbitRenderer {
     private float[] mColor = {1.0f, 0.0f, 0.0f, 1.0f};
     private float mLineVertices[];
 
-    public OrbitRenderer(List<Position> positions) {
+    public OrbitRenderer(List<Point3D> positions) {
         initVertices(positions);
     }
 
-    private void initVertices(List<Position> positions) {
+    private void initVertices(List<Point3D> positions) {
         mLineVertices = new float[positions.size() * 3];
         int i = 0;
-        for (Position pos : positions) {
-            float x = (float) (Math.cos(pos.latitude) * Math.sin(pos.longitude));
-            float y = (float) (Math.sin(pos.latitude));
-            float z = (float) (Math.cos(pos.latitude) * Math.cos(pos.longitude)) ;
-            mLineVertices[i++] = x;
-            mLineVertices[i++] = y;
-            mLineVertices[i++] = z;
+        for (Point3D pos : positions) {
+            //float x = (float) (Math.cos(pos.latitude) * Math.sin(pos.longitude));
+            //float y = (float) (Math.sin(pos.latitude));
+            //float z = (float) (Math.cos(pos.latitude) * Math.cos(pos.longitude)) ;
+            mLineVertices[i++] = (float) pos.x;
+            mLineVertices[i++] = (float) pos.y;
+            mLineVertices[i++] = (float) pos.z;
         }
     }
 

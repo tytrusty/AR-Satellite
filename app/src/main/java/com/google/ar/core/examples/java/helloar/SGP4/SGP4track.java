@@ -4,9 +4,10 @@ package com.google.ar.core.examples.java.helloar.SGP4;
  * Created by TY on 1/1/2018.
  */
 
+import android.graphics.Point;
 import android.util.Log;
 
-import com.google.ar.core.examples.java.helloar.Position;
+import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.Satellite;
 import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
 
@@ -94,53 +95,56 @@ public class SGP4track {
         sat.setSpeed(Math.sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) * 1000);
     }
 
-
     /**
-     * Calculates the path of a satellite for its entire period. Calculates the location of the
-     * satellite at separate points throughout the period so that a vector may be created
-     * outlining the satellite's path.
-     * @param sat satellite to track path for
+     * Samples a number of points from a given satellite's orbit. Different from getSatellitePath
+     * in that the location is not determined at different points along the period. Instead,
+     * this method samples some number of points given the satellite's current orbital information.
+     * This provides a clear elliptical orbit for rendering.
+     *
+     * Thanks to https://space.stackexchange.com/a/8915/22335 for explanations of the math
+     *
+     * @param sat satellite for which orbital path will be extrapolated
      * @param points the number of latitude,longitude pairs that will be generated for the path
      * @return an ArrayList of LatLng points
      */
-    // Similar to trackSat, but returns an arraylist of coordinates
-    // Points parameter represents the amount of points will be calculated for the list.
-    public static List<Position> getSatellitePath(Satellite sat, int points) {
+    public static List<Point3D> getSatelliteOrbit(Satellite sat, int points) {
+        List<Point3D> positions = new ArrayList<>();
+        final double epsilon   = 1e-6;
+        final double TWO_PI    = 2.0 * Math.PI;
+        final double increment = TWO_PI / points;
 
-        List<Position> positions = new ArrayList<>();
+        final double a = sat.mData.a;     // Semi-major axis
+        final double e = sat.mData.ecco;  // eccentricity [0, 1]
+        final double i = sat.mData.inclo; // inclination
+        final double w = sat.mData.argpo; // argument of perigee
+        final double W = sat.mData.nodeo; // longitude of ascending node
 
-        // Sets mean motion if not already set.
-        // Mean motion used to find orbital period, which is used in the path creation method.
-        double meanMotion = sat.mData.no;
-        meanMotion = Double.parseDouble("2 25544  51.6408 118.2208 0002870 334.1045 127.0693 15.54253729 92951".substring(52, 63));
+        for(double M = 0; M < TWO_PI; M += increment ) {
+            // Solving Kepler equation (M = E - esin(E)) for eccentric anomaly, E
+            // using Newton-Raphson method
+            double E = M;
+            double deltaE = 1.0;
+            while (Math.abs(deltaE) > epsilon) {
+                deltaE = (E - e*Math.sin(E) - M) / (1.0 - e*Math.cos(E));
+                E -= deltaE;
+            }
+            // Position in 2-space on the orbit's plane
+            double P = a * (Math.cos(E) - e);
+            double Q = Math.sin(E) * Math.sqrt(1 - e*e);
 
+            // Rotate by argument of perigee
+            double x = Math.cos(w)*P - Math.sin(w)*Q;
+            double y = Math.sin(w)*P + Math.cos(w)*Q;
 
-        double hoursPerOrbit  = 24 / meanMotion;                 // Hours per orbit as a decimal
-        int hours             = (int) hoursPerOrbit;             // Hours ... Truncated decimal
-        double minutesDecimal = (hoursPerOrbit - hours) * 60.0;  // Minutes expressed as decimal
-        double orbitalPeriod  = minutesDecimal + (hours * 60);   // Orbital Period in minutes
-        System.out.println("orbitalPeriod: " + orbitalPeriod);
+            // Rotate by inclination
+            double z = Math.sin(i) * x;
+            x = Math.cos(i) * x;
 
-        int bound = (int) (orbitalPeriod / 2); // Array bounds. Split period in half because array goes from - to +
-        double increment = orbitalPeriod / points;
-
-        // Calculates longitude and latitude at points for an entire orbital period.
-        double julTime = getJulianTime();
-        for(double i = -bound; i < bound + 1; i += increment ) {
-
-            double newJD = julTime + (julMinute * i);
-
-            double minutesSinceEpoch = (newJD - sat.mData.jdsatepoch) * 24.0 * 60.0;
-            double[] pos = new double[3];
-            double[] vel = new double[3];
-
-            boolean result = SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
-            double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, newJD, 86400.87); // PM of 0,0 is more consistent with online trackers
-            double[] longLat = CoordConvert.ecefToLongLat(ecefPos, newJD);
-            positions.add(new Position(longLat[1], longLat[2], longLat[3]));
-            //System.out.println("julTime: " + julTime + "   newJD: " + newJD);
-           // System.out.println("minutesSinceEpoch: " + minutesSinceEpoch);
-            //System.out.println("long: " + (longLat[2] * 180.0 / Math.PI));
+            // Rotate by longitude of ascending node
+            double temp = x;
+            x = Math.cos(W)*temp - Math.sin(W)*y;
+            y = Math.sin(W)*temp + Math.cos(W)*y;
+            positions.add(new Point3D(x, y, z));
         }
         return positions;
     }

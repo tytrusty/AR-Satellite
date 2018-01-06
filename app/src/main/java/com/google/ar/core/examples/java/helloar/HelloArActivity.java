@@ -365,7 +365,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             mEarthObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
             mEarthObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mOrbitRender = new OrbitRenderer(SGP4track.getSatellitePath(mSat, 40));
+            mOrbitRender = new OrbitRenderer(SGP4track.getSatelliteOrbit(mSat, 40));
             mOrbitRender.createOnGlThread(this);
 
             mLineRenderer.createOnGlThread(this);
