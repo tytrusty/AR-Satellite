@@ -355,8 +355,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         TLEdata tle = new TLEdata(
                 "0 ISS (ZARYA)",
-                "1 25544U 98067A   18003.80114203  .00002109  00000-0  38925-4 0  9994",
-                "2 25544  51.6408 118.2208 0002870 334.1045 127.0693 15.54253729 92951"
+                "1 25544U 98067A   18007.51229834  .00016717  00000-0  10270-3 0  9029",
+                "2 25544  51.6416  99.7222 0003104 343.2537  16.8513 15.54292606 13526"
         );
         mSat = new Satellite(this, tle);
 

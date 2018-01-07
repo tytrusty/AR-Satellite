@@ -7,6 +7,7 @@ package com.google.ar.core.examples.java.helloar.SGP4;
 import android.graphics.Point;
 import android.util.Log;
 
+import com.google.ar.core.examples.java.helloar.Kepler;
 import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.Satellite;
 import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
@@ -109,7 +110,6 @@ public class SGP4track {
      */
     public static List<Point3D> getSatelliteOrbit(Satellite sat, int points) {
         List<Point3D> positions = new ArrayList<>();
-        final double epsilon   = 1e-6;
         final double TWO_PI    = 2.0 * Math.PI;
         final double increment = TWO_PI / points;
 
@@ -119,15 +119,9 @@ public class SGP4track {
         final double w = sat.mData.argpo; // argument of perigee
         final double W = sat.mData.nodeo; // longitude of ascending node
 
-        for(double M = 0; M < TWO_PI; M += increment ) {
+        for(double M = 0; M <= TWO_PI; M += increment ) {
             // Solving Kepler equation (M = E - esin(E)) for eccentric anomaly, E
-            // using Newton-Raphson method
-            double E = M;
-            double deltaE = 1.0;
-            while (Math.abs(deltaE) > epsilon) {
-                deltaE = (E - e*Math.sin(E) - M) / (1.0 - e*Math.cos(E));
-                E -= deltaE;
-            }
+            double E = Kepler.solve(M, e);
             // Position in 2-space on the orbit's plane
             double P = a * (Math.cos(E) - e);
             double Q = Math.sin(E) * Math.sqrt(1 - e*e);
@@ -144,6 +138,7 @@ public class SGP4track {
             double temp = x;
             x = Math.cos(W)*temp - Math.sin(W)*y;
             y = Math.sin(W)*temp + Math.cos(W)*y;
+
             positions.add(new Point3D(x, y, z));
         }
         return positions;
