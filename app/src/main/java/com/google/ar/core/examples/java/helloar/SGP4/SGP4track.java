@@ -116,30 +116,54 @@ public class SGP4track {
         final double a = sat.mData.a;     // Semi-major axis
         final double e = sat.mData.ecco;  // eccentricity [0, 1]
         final double i = sat.mData.inclo; // inclination
-        final double w = sat.mData.argpo; // argument of perigee
-        final double W = sat.mData.nodeo; // longitude of ascending node
-
+        final double w = sat.mData.argpo; // argument of perigee (little omega)
+        final double W = sat.mData.nodeo; // longitude of ascending node (great omega)
         for(double M = 0; M <= TWO_PI; M += increment ) {
             // Solving Kepler equation (M = E - esin(E)) for eccentric anomaly, E
-            double E = Kepler.solve(M, e);
-            // Position in 2-space on the orbit's plane
-            double P = a * (Math.cos(E) - e);
-            double Q = Math.sin(E) * Math.sqrt(1 - e*e);
+            final double E = Kepler.solve(M, e);
 
-            // Rotate by argument of perigee
-            double x = Math.cos(w)*P - Math.sin(w)*Q;
-            double y = Math.sin(w)*P + Math.cos(w)*Q;
+//            // true anomaly
+            double v = Kepler.calcTrueAnomaly(e, E);
+            if(E <= Math.PI)
+                v = Math.acos((Math.cos(E) - e) / (1.0 - e * Math.cos(E)));
+            else
+                v = TWO_PI - Math.acos((Math.cos(E) - e) / (1.0 - e * Math.cos(E)));
 
-            // Rotate by inclination
-            double z = Math.sin(i) * x;
-            x = Math.cos(i) * x;
+//            final double radius = a*(1 - e*Math.cos(E));
+//            final double x = radius * (Math.cos(W)*Math.cos(w + v) - Math.sin(W)*Math.sin(w + v)*Math.cos(i));
+//            final double y = radius * (Math.sin(W)*Math.cos(w + v) + Math.cos(W)*Math.sin(w + v)*Math.cos(i));
+//            final double z = -radius * (Math.sin(i)*Math.sin(w + v));
+//            // Position in 2-space on the orbit's plane
+//            double P = a * (Math.cos(E) - e);
+//            double Q = Math.sin(E) * Math.sqrt(1 - e*e);
+//
+//            // Rotate by argument of perigee
+//            double x = Math.cos(w)*P - Math.sin(w)*Q;
+//            double y = Math.sin(w)*P + Math.cos(w)*Q;
+//
+//            // Rotate by inclination
+//            double z = Math.sin(i) * x;
+//            x = Math.cos(i) * x;
+//
+//            // Rotate by longitude of ascending node
+//            double temp = x;
+//            x = Math.cos(W)*temp - Math.sin(W)*y;
+//            y = Math.sin(W)*temp + Math.cos(W)*y;
+            double lon = W+Math.atan2(
+                    Math.sin(w+v)*Math.cos(i)/Math.sqrt(1.0-Math.pow(Math.sin(w+v)*Math.sin(i), 2.0)),
+                    Math.cos(w+v)/Math.sqrt(1.0-Math.pow(Math.sin(w+v)*Math.sin(i), 2.0)));
+            double lat = Math.asin(Math.sin(i)*Math.sin(w+v)); // latitude
 
-            // Rotate by longitude of ascending node
-            double temp = x;
-            x = Math.cos(W)*temp - Math.sin(W)*y;
-            y = Math.sin(W)*temp + Math.cos(W)*y;
+            if (lon < 0.0)
+                lon += TWO_PI;
+            if (lat < 0.0)
+                lon += TWO_PI;
 
-            positions.add(new Point3D(x, y, z));
+            double x = 1.2 * (Math.cos(lat) * Math.sin(lon));
+            double y = 1.2 * (Math.sin(lat));
+            double z = 1.2 * (Math.cos(lat) * Math.cos(lon));
+
+            positions.add(new Point3D(x, y, -z));
         }
         return positions;
     }

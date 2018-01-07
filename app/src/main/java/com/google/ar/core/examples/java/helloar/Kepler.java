@@ -62,4 +62,16 @@ public class Kepler {
         return t5 / ((0.5 * t3 - (1.0/6.0) * t1 * t6) * ecc * t6 + t2);
 
     }
+
+    /**
+     * Calculate true anomaly
+     * See: https://www.vcalc.com/wiki/MichaelBartmess/True+Anomaly%2C+%60nu%60%5BE%5D
+     *
+     * @param ecc orbital eccentricity
+     * @param E eccentric anomaly
+     * @return v, the true anomaly
+     */
+    public static double calcTrueAnomaly(double ecc, double E) {
+        return Math.acos((Math.cos(E) - ecc) / (1 - ecc*Math.cos(E)) );
+    }
 }
