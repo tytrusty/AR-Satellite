@@ -4,13 +4,11 @@ package com.google.ar.core.examples.java.helloar.SGP4;
  * Created by TY on 1/1/2018.
  */
 
-import android.graphics.Point;
 import android.util.Log;
 
 import com.google.ar.core.examples.java.helloar.Kepler;
 import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.Satellite;
-import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -20,6 +18,8 @@ import java.util.TimeZone;
 public class SGP4track {
 
     private static final String TAG = SGP4track.class.getSimpleName();
+
+    private static final double TWO_PI    = 2.0 * Math.PI;
 
     private static final double julMinute = 1.0 / ( 24.0 * 60);
 
@@ -110,20 +110,15 @@ public class SGP4track {
      */
     public static List<Point3D> getSatelliteOrbit(Satellite sat, int points) {
         List<Point3D> positions = new ArrayList<>();
-        final double TWO_PI    = 2.0 * Math.PI;
         final double increment = TWO_PI / points;
 
         // prop to current date
-        double propJD = getJulianTime();
-        double minutesSinceEpoch = (propJD - sat.mData.jdsatepoch) * 24.0 * 60.0;
-
-        double[] pos = new double[3];
-        double[] vel = new double[3];
-
-        SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
-        double[] kepler = SGP4utils.rv2coe(pos, vel);
-
-//        p, a, ecc, incl, omega, argp, nu, m, arglat, truelon, lonper
+//        double propJD = getJulianTime();
+//        double minutesSinceEpoch = (propJD - sat.mData.jdsatepoch) * 24.0 * 60.0;
+//        double[] pos = new double[3];
+//        double[] vel = new double[3];
+//        SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
+//        double[] kepler = SGP4utils.rv2coe(pos, vel);
 //        final double a = kepler[1];
 //        final double e = kepler[2];
 //        final double i = kepler[3];
@@ -135,41 +130,18 @@ public class SGP4track {
         final double i = sat.mData.inclo; // inclination
         final double w = sat.mData.argpo; // argument of perigee (little omega)
         final double W = sat.mData.nodeo; // longitude of ascending node (great omega)
-        Log.i(TAG, "Getting satellite orbit");
+
         for(double M = 0; M <= TWO_PI; M += increment ) {
             // Solving Kepler equation (M = E - esin(E)) for eccentric anomaly, E
             final double E = Kepler.solve(M, e);
 
 //            // true anomaly
             double v = Kepler.calcTrueAnomaly(e, E);
-            if(E <= Math.PI)
-                v = Math.acos((Math.cos(E) - e) / (1.0 - e * Math.cos(E)));
-            else
-                v = TWO_PI - Math.acos((Math.cos(E) - e) / (1.0 - e * Math.cos(E)));
 
             final double radius = a*(1 - e*Math.cos(E));
             final double x =  1.5 * (Math.sin(W)*Math.cos(w + v) + Math.cos(W)*Math.sin(w + v)*Math.cos(i));
             final double y =  1.5 * (Math.sin(i)*Math.sin(w + v));
             final double z =  1.5 * (Math.cos(W)*Math.cos(w + v) - Math.sin(W)*Math.sin(w + v)*Math.cos(i));
-
-
-            double lon = (W+Math.atan2(
-                    Math.sin(w+v)*Math.cos(i)/Math.sqrt(1.0-Math.pow(Math.sin(w+v)*Math.sin(i), 2.0)),
-                    Math.cos(w+v)/Math.sqrt(1.0-Math.pow(Math.sin(w+v)*Math.sin(i), 2.0)))) % TWO_PI;
-            double lat = Math.asin(Math.sin(i)*Math.sin(w+v)) % TWO_PI; // latitude
-
-            if (lon < 0.0)
-                lon += TWO_PI;
-            if (lat < 0.0)
-                lon += TWO_PI;
-
-//            double x = 1.5 * (Math.cos(lat) * Math.sin(lon));
-//            double y = 1.5 * (Math.sin(lat));
-//            double z = -1.5 * (Math.cos(lat) * Math.cos(lon));
-
-            Log.i(TAG, "x: " + x + "y: " + y + "z: " + z);
-            Log.i(TAG, "lat: " + lat*(180/Math.PI) + "lon: " + lon*(180/Math.PI));
-
 
             positions.add(new Point3D(x, y, z));
         }
@@ -182,56 +154,47 @@ public class SGP4track {
      * outlining the satellite's path.
      * @param sat satellite to track path for
      * @param points the number of latitude,longitude pairs that will be generated for the path
+     * @param correctLongitude boolean indicating whether longitude should be corrected such that
+     *                         the resulting path is a (mostly) perfect ellipse
      * @return an ArrayList of LatLng points
      */
     // Similar to trackSat, but returns an arraylist of coordinates
     // Points parameter represents the amount of points will be calculated for the list.
-    public static List<Point3D> getSatellitePath(Satellite sat, int points, boolean doshit) {
-        Log.i(TAG, "Getting satellite path");
-
+    public static List<Point3D> getSatellitePath(Satellite sat, int points, boolean correctLongitude) {
         List<Point3D> positions = new ArrayList<>();
+        final double MINUTES_PER_DAY = 1440.0;
 
-        // Sets mean motion if not already set.
-        // Mean motion used to find orbital period, which is used in the path creation method.
-        double meanMotion = sat.mData.no;
-        meanMotion = Double.parseDouble("2 25544  51.6417  94.5927 0003240 348.1782  11.9295 15.54288204 13688".substring(52, 63));
-
+        // Mean motion used to find orbital period. Converting mean motion to revolutions per day.
+        double meanMotion = sat.mData.no * (MINUTES_PER_DAY / TWO_PI);
 
         double hoursPerOrbit  = 24 / meanMotion;                 // Hours per orbit as a decimal
         int hours             = (int) hoursPerOrbit;             // Hours ... Truncated decimal
         double minutesDecimal = (hoursPerOrbit - hours) * 60.0;  // Minutes expressed as decimal
         double orbitalPeriod  = minutesDecimal + (hours * 60);   // Orbital Period in minutes
 
-        int bound = (int) (orbitalPeriod / 2); // Array bounds. Split period in half because array goes from - to +
-        double increment = orbitalPeriod / points;
-
         // Calculates longitude and latitude at points for an entire orbital period.
         double julTime = getJulianTime();
-        for(double i = 0; i < points; i ++ ) {
-
+        for(int i = 0; i <= points; ++i) {
             double newJD = julTime + (julMinute * i * orbitalPeriod/points);
 
             double minutesSinceEpoch = (newJD - sat.mData.jdsatepoch) * 24.0 * 60.0;
             double[] pos = new double[3];
             double[] vel = new double[3];
 
-            boolean result = SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
-            double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, newJD, 86400.87); // PM of 0,0 is more consistent with online trackers
+            SGP4unit.sgp4(sat.mData, minutesSinceEpoch, pos, vel);
+            double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, newJD, 86400.87);
             double[] longLat = CoordConvert.ecefToLongLat(ecefPos, newJD);
 
             double lat = longLat[1];
             double lon = longLat[2];
-            if (doshit) lon += (newJD - julTime) * 24 * 60 * 60 / 86184 * 2 * Math.PI;
-
+            if (correctLongitude) {
+                lon += (newJD - julTime) * TWO_PI;
+            }
 
             double x = 1.5 * (Math.cos(lat) * Math.sin(lon));
             double y = 1.5 * (Math.sin(lat));
             double z = 1.5 * (Math.cos(lat) * Math.cos(lon));
             positions.add(new Point3D(x, y, z));
-
-            //System.out.println("julTime: " + julTime + "   newJD: " + newJD);
-            // System.out.println("minutesSinceEpoch: " + minutesSinceEpoch);
-            //System.out.println("long: " + (longLat[2] * 180.0 / Math.PI));
         }
         return positions;
     }

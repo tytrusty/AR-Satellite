@@ -72,6 +72,14 @@ public class Kepler {
      * @return v, the true anomaly
      */
     public static double calcTrueAnomaly(double ecc, double E) {
-        return Math.acos((Math.cos(E) - ecc) / (1 - ecc*Math.cos(E)) );
+        final double TWO_PI    = 2.0 * Math.PI;
+
+        double v;
+        if(E <= Math.PI)
+            v = Math.acos((Math.cos(E) - ecc) / (1.0 - ecc * Math.cos(E)));
+        else
+            v = TWO_PI - Math.acos((Math.cos(E) - ecc) / (1.0 - ecc * Math.cos(E)));
+        return v;
+
     }
 }
