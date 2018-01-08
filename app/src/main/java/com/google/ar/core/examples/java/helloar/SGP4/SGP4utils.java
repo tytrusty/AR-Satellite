@@ -595,15 +595,15 @@ public class SGP4utils
      *
      * @param r
      * @param v
-     * @param mu
      * @return [p, a, ecc, incl, omega, argp, nu, m, arglat, truelon, lonper]
      */
     public static double[] rv2coe(
-            double[] r, double[] v, double mu//,
+            double[] r, double[] v//,
             //       double& p, double& a, double& ecc, double& incl, double& omega, double& argp,
             //       double& nu, double& m, double& arglat, double& truelon, double& lonper
     )
     {
+        double mu = 398600.7996;
 
         // return variables
         double p, a, ecc, incl, omega, argp, nu, m, arglat, truelon, lonper;

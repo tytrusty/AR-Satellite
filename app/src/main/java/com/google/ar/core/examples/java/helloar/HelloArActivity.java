@@ -91,7 +91,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
 
     Satellite mSat;
-    OrbitRenderer mOrbitRender;
+    OrbitRenderer mOrbitRenderer1;
+    OrbitRenderer mOrbitRenderer2;
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] mAnchorMatrix = new float[16];
@@ -355,8 +356,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         TLEdata tle = new TLEdata(
                 "0 ISS (ZARYA)",
-                "1 25544U 98067A   18007.51229834  .00016717  00000-0  10270-3 0  9029",
-                "2 25544  51.6416  99.7222 0003104 343.2537  16.8513 15.54292606 13526"
+                "1 25544U 98067A   18008.54103705  .00016717  00000-0  10270-3 0  9032",
+                "2 25544  51.6417  94.5927 0003240 348.1782  11.9295 15.54288204 13688"
         );
         mSat = new Satellite(this, tle);
 
@@ -365,8 +366,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             mEarthObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
             mEarthObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mOrbitRender = new OrbitRenderer(SGP4track.getSatelliteOrbit(mSat, 40));
-            mOrbitRender.createOnGlThread(this);
+            //mOrbitRender = new OrbitRenderer(SGP4track.getSatelliteOrbit(mSat, 80));
+            mOrbitRenderer1 = new OrbitRenderer(SGP4track.getSatellitePath(mSat, 80, true));
+            mOrbitRenderer1.createOnGlThread(this);
+
+            mOrbitRenderer2 = new OrbitRenderer(SGP4track.getSatellitePath(mSat, 80, false), new float[]{0.0f, 1.0f, 0.0f, 1.0f});
+            mOrbitRenderer2.createOnGlThread(this);
 
             mLineRenderer.createOnGlThread(this);
         } catch (IOException e) {
@@ -490,14 +495,17 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 float[] origin = new float[4];
                 anchor.getPose().getTranslation(origin, 0);
 
+                //TODO Drag left/right to rotate
                 // Update and draw the model and its shadow.
                 mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, isPositioning);
                 mEarthObject.draw(viewmtx, projmtx, lightIntensity, isPositioning);
 
                 mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor);
                 mSat.draw(viewmtx, projmtx, lightIntensity);
-                mOrbitRender.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
-                mOrbitRender.draw(viewmtx, projmtx);
+                mOrbitRenderer1.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mOrbitRenderer1.draw(viewmtx, projmtx);
+                mOrbitRenderer2.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mOrbitRenderer2.draw(viewmtx, projmtx);
 
                 // Only render y-axis if in positioning stage
                 if (isPositioning) {

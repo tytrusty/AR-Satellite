@@ -21,7 +21,7 @@ public class OrbitRenderer {
     private static final String TAG = OrbitRenderer.class.getSimpleName();
 
     private static final int COORDS_PER_VERTEX = 3;
-
+    private static final float[] DEFAULT_COLOR = {1.0f, 0.0f, 0.0f, 1.0f};
     // Object vertex buffer variables.
     private int mVertexBufferId;
     private int mProgram;
@@ -42,8 +42,14 @@ public class OrbitRenderer {
     private float[] mColor = {1.0f, 0.0f, 0.0f, 1.0f};
     private float mLineVertices[];
 
-    public OrbitRenderer(List<Point3D> positions) {
-        initVertices(positions);
+    public OrbitRenderer(List<Point3D> points) {
+        initVertices(points);
+        mColor = DEFAULT_COLOR;
+    }
+
+    public OrbitRenderer(List<Point3D> points, float[] color) {
+        initVertices(points);
+        mColor = color;
     }
 
     private void initVertices(List<Point3D> positions) {

@@ -219,7 +219,7 @@ public class SatelliteRenderer {
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @see android.opengl.Matrix
      */
-    float scale = 2.0f;
+    float scale = 1.5f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
                                   double altitude,
                                   double latitude, double longitude) {
