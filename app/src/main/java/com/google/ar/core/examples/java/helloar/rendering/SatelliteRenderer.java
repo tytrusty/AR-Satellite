@@ -266,7 +266,7 @@ public class SatelliteRenderer {
      * @param lightIntensity  Illumination intensity.  Combined with diffuse and specular material
      *     properties.
      * @see #setBlendMode(BlendMode)
-     * @see #updateModelMatrix(float[], float, float, double, double, double)
+     * @see #updateModelMatrix(float[], float, float, float, double, double, double)
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */

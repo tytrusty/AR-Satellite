@@ -49,6 +49,7 @@ import com.google.ar.core.examples.java.helloar.SGP4.TLEdata;
 import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.DottedLineRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
+import com.google.ar.core.examples.java.helloar.rendering.EarthShadowRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.OrbitRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PointCloudRenderer;
@@ -70,8 +71,8 @@ import static android.view.MotionEvent.INVALID_POINTER_ID;
  * ARCore API. The application will display any detected planes and will allow the user to tap on a
  * plane to place a 3d model of the Android robot.
  */
-public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
-    private static final String TAG = HelloArActivity.class.getSimpleName();
+public class MainActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView mSurfaceView;
@@ -84,20 +85,21 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     private final EarthRenderer mEarthObject             = new EarthRenderer();
+    private final EarthShadowRenderer mShadowRenderer    = new EarthShadowRenderer();
     private final DottedLineRenderer mLineRenderer       = new DottedLineRenderer();
     private final PlaneRenderer mPlaneRenderer           = new PlaneRenderer();
     private final PointCloudRenderer mPointCloud         = new PointCloudRenderer();
 
     Satellite mSat;
     OrbitRenderer mOrbitRenderer1;
-    OrbitRenderer mOrbitRenderer2;
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] mAnchorMatrix = new float[16];
 
     // Tap handling and UI.
     private final ArrayBlockingQueue<MotionEvent> mQueuedSingleTaps = new ArrayBlockingQueue<>(16);
-    private final ArrayList<Anchor> mAnchors = new ArrayList<>();
+
+    private Anchor mEarthAnchor = null;
 
     private final float TRANSLATE_MIN   = -1.0f;
     private final float TRANSLATE_MAX   = 1.0f;
@@ -368,12 +370,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             mEarthObject.createOnGlThread(/*context=*/this,"Albedo.jpg");
             mEarthObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            //mOrbitRender = new OrbitRenderer(SGP4track.getSatelliteOrbit(mSat, 80));
+            mShadowRenderer.createOnGlThread(this);
+
             mOrbitRenderer1 = new OrbitRenderer(SGP4track.getSatellitePath(mSat, 80, true));
             mOrbitRenderer1.createOnGlThread(this);
-
-            mOrbitRenderer2 = new OrbitRenderer(SGP4track.getSatellitePath(mSat, 80, false), new float[]{0.0f, 1.0f, 0.0f, 1.0f});
-            mOrbitRenderer2.createOnGlThread(this);
 
             mLineRenderer.createOnGlThread(this);
         } catch (IOException e) {
@@ -421,16 +421,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                     Trackable trackable = hit.getTrackable();
                     if (trackable instanceof Plane
                             && ((Plane) trackable).isPoseInPolygon(hit.getHitPose())) {
-                        // Cap the number of objects created. This avoids overloading both the
-                        // rendering system and ARCore.
-                        if (mAnchors.size() >= 20) {
-                            mAnchors.get(0).detach();
-                            mAnchors.remove(0);
+                        // Set anchor where the earth object will appear
+                        if (mEarthAnchor != null) {
+                            mEarthAnchor.detach();
                         }
-                        // Adding an Anchor tells ARCore that it should track this position in
-                        // space. This anchor is created on the Plane to place the 3d model
-                        // in the correct position relative both to the world and to the plane.
-                        mAnchors.add(hit.createAnchor());
+
+                        mEarthAnchor = hit.createAnchor();
 
                         // Hits are sorted by depth. Consider only closest hit on a plane.
                         break;
@@ -487,26 +483,30 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
 
             // Visualize anchors created by touch.
-            for (Anchor anchor : mAnchors) {
-                if (anchor.getTrackingState() != TrackingState.TRACKING) {
-                    continue;
+//            for (Anchor anchor : mAnchors) {
+                if (mEarthAnchor == null || mEarthAnchor.getTrackingState() != TrackingState.TRACKING) {
+                    // TODO re-enter positioning
+                    // Notify user that tracking is Lost and attempting to find anchor again
+                    // Also add button that user can press to restart to positioning phase
+                    return;
                 }
                 // Get the current pose of an Anchor in world space. The Anchor pose is updated
                 // during calls to session.update() as ARCore refines its estimate of the world.
-                anchor.getPose().toMatrix(mAnchorMatrix, 0);
+                mEarthAnchor.getPose().toMatrix(mAnchorMatrix, 0);
                 float[] origin = new float[4];
-                anchor.getPose().getTranslation(origin, 0);
+                mEarthAnchor.getPose().getTranslation(origin, 0);
 
                 // Update and draw the model and its shadow.
-                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle, isPositioning);
+                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mEarthObject.draw(viewmtx, projmtx, lightIntensity, isPositioning);
+
+                mShadowRenderer.updateModelMatrix(mAnchorMatrix, mScaleFactor);
+                mShadowRenderer.draw(viewmtx, projmtx, mTranslateFactor / 2 + 1);
 
                 mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mSat.draw(viewmtx, projmtx, lightIntensity);
                 mOrbitRenderer1.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mOrbitRenderer1.draw(viewmtx, projmtx);
-                mOrbitRenderer2.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
-                mOrbitRenderer2.draw(viewmtx, projmtx);
 
                 // Only render y-axis if in positioning stage
                 if (isPositioning) {
@@ -514,7 +514,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                     mLineRenderer.draw(viewmtx, projmtx);
                 }
 
-            }
+//            }
 
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.
@@ -524,7 +524,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     private void showSnackbarMessage(String message, boolean finishOnDismiss) {
         mMessageSnackbar = Snackbar.make(
-            HelloArActivity.this.findViewById(android.R.id.content),
+            MainActivity.this.findViewById(android.R.id.content),
             message, Snackbar.LENGTH_INDEFINITE);
         mMessageSnackbar.getView().setBackgroundColor(0xbf323232);
         if (finishOnDismiss) {

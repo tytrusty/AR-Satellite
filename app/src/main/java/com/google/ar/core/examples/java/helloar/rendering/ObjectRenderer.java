@@ -238,22 +238,13 @@ public class ObjectRenderer {
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @see android.opengl.Matrix
      */
-    float angle = 0.0f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0]  = scaleFactor;
         scaleMatrix[5]  = scaleFactor;
         scaleMatrix[10] = scaleFactor;
-        Matrix.rotateM(modelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
-        Matrix.translateM(mModelMatrix, 0, 0, scaleFactor, 0);
-//        for (int i = 0; i < 4; ++i) {
-//            for (int j = 0; j < 4; ++j) {
-//                System.out.print(mModelMatrix[i * 4 + j] + ", ");
-//            }
-//            System.out.println();
-//        }
     }
 
     /**
