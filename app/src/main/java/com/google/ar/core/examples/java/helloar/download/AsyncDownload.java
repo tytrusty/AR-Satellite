@@ -10,7 +10,7 @@ import android.widget.RelativeLayout;
 import com.google.ar.core.examples.java.helloar.R;
 import com.google.ar.core.examples.java.helloar.SGP4.TLEdata;
 import com.google.ar.core.examples.java.helloar.Satellite;
-import com.google.ar.core.examples.java.helloar.SatelliteAdapter;
+import com.google.ar.core.examples.java.helloar.SatelliteCluster;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,7 +21,6 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.List;
 
 /**
  * Created by TY on 1/8/2018.
@@ -41,23 +40,23 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
     private final Context context;
     private final RelativeLayout background;
     private final ProgressBar progressBar;
+    private final SatelliteCluster adapter;
 
     private boolean isFinishedDownloading = false; // Used to indicate that download is done so user can continue to main activity
-    private SatelliteAdapter adapter;
 
-    public AsyncDownload(Context context, SatelliteAdapter adapter) {
-        this.context       = context;
-        this.adapter = adapter;
-        this.progressBar   = null;
-        this.background    = null;
+    public AsyncDownload(Context context, SatelliteCluster adapter) {
+        this.context     = context;
+        this.adapter     = adapter;
+        this.background  = null;
+        this.progressBar = null;
     }
 
-    public AsyncDownload(Context context, RelativeLayout background, ProgressBar progressBar,
-                         SatelliteAdapter adapter) {
-        this.context = context;
-        this.background = background;
+    public AsyncDownload(Context context, SatelliteCluster adapter, RelativeLayout background,
+                         ProgressBar progressBar) {
+        this.context     = context;
+        this.adapter     = adapter;
+        this.background  = background;
         this.progressBar = progressBar;
-        this.adapter = adapter;
     }
 
     @Override
@@ -93,10 +92,7 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
                 conn.setRequestMethod("POST");
 
                 //  Reading and accessing TLE file
-                BufferedReader br;
-
-                System.out.println("Output from Server .... \n");
-                br = new BufferedReader(new InputStreamReader((url.openStream())));
+                BufferedReader br = new BufferedReader(new InputStreamReader((url.openStream())));
                 String name, line1, line2; // TLE data
                 while(  ((name  = br.readLine()) != null) &&
                         ((line1 = br.readLine()) != null) &&
@@ -119,7 +115,7 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
             return true;    // File downloaded
         } else {
             Log.i(TAG, "Not Downloading TLE");
-            return false;   // File not downloaded because it already exists
+            return false;   // File not downloaded as it already exists
         }
     }
 

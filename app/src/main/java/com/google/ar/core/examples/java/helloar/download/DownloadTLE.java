@@ -17,19 +17,25 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
+ * Functions for TLE file management
  * Created by TY on 1/8/2018.
  */
 public class DownloadTLE {
-
-    private static final String TAG = AsyncDownload.class.getSimpleName();
+    private static final String TAG = DownloadTLE.class.getSimpleName();
     private static final long MAX_FILE_AGE = 43200000; // 12 hrs in milliseconds
 
-    public static  boolean download(final Context context, final String fileName) {
+    /**
+     * Downloads TLE file from server.
+     *
+     * @param context Android context for getting file directory
+     * @param fileName The tle filename
+     * @return boolean indicating download success (True) or failure (False)
+     */
+    public static boolean download(final Context context, final String fileName) {
         try {
             final String baseURL = context.getResources().getString(R.string.url_base); // Gets server url for connection
             final File file = new File(context.getFilesDir(), fileName);
             FileWriter writer = new FileWriter(file);
-
             CookieManager manager = new CookieManager();
             manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
             CookieHandler.setDefault(manager);
@@ -43,17 +49,13 @@ public class DownloadTLE {
             conn.setRequestMethod("POST");
 
             //  Reading and accessing TLE file
-
             String output;
-
-            System.out.println("Output from Server .... \n");
             BufferedReader br = new BufferedReader(new InputStreamReader((url.openStream())));
+            Log.d(TAG, "Connection established. Receiving output");
             while ((output = br.readLine()) != null) {
-                // System.out.println(output + "\n");
                 writer.write(output + "\n");
                 writer.flush();
             }
-
             writer.close();
             conn.disconnect();
 
@@ -64,9 +66,6 @@ public class DownloadTLE {
         }
         return true;
     }
-
-    // Check to see if tle.txt is uninitialized or more than 6 hours old
-    // return true if older than max time, false otherwise
 
     /**
      * Checks if a TLE file is outdated. This occurs when the current system's time exceeds
