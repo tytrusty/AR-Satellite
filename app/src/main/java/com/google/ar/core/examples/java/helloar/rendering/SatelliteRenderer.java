@@ -221,7 +221,7 @@ public class SatelliteRenderer {
      */
     float scale = 1.5f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
-                                  double altitude,
+                                  float rotateAngle, double altitude,
                                   double latitude, double longitude) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
@@ -230,10 +230,7 @@ public class SatelliteRenderer {
         scaleMatrix[10] = scaleFactor;
 
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
-        //mModelMatrix[13] = translateFactor;
-//      mModelMatrix[12] = -0.1f;
-//      Matrix.rotateM(mModelMatrix, 0, angle++, 0.0f, 1.0f, 0.0f);
-//      Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0, -0.1f, 0, 0);
+        Matrix.rotateM(mModelMatrix, 0, rotateAngle, 0.0f, 1.0f, 0.0f);
         mModelMatrix[13] = translateFactor;
 
         float x = (float) (Math.cos(latitude) * Math.sin(longitude)) * scale;

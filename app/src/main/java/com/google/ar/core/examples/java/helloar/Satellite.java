@@ -41,9 +41,10 @@ public class Satellite {
         mRenderer.setMaterialProperties(1.0f, 3.5f, 1.0f, 6.0f);
     }
 
-    public void update(float[] modelMatrix, float scaleFactor, float translateFactor) {
+    public void update(float[] modelMatrix, float scaleFactor, float translateFactor, float rotateAngle) {
         SGP4track.updateSatellite(this); // Get new coordinates
-        mRenderer.updateModelMatrix(modelMatrix, scaleFactor, translateFactor, mAltitude, mLatitude, mLongitude);
+        mRenderer.updateModelMatrix(modelMatrix, scaleFactor, translateFactor, rotateAngle,
+                mAltitude, mLatitude, mLongitude);
     }
 
     public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity) {

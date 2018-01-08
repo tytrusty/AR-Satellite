@@ -209,18 +209,18 @@ public class EarthRenderer extends ObjectRenderer {
         Matrix.setIdentityM(mModelMatrix, 0);
     }
 
-    private float angle = 0.0f;
     /**
      * Updates the object model matrix and applies scaling.
      *
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @param translateFactor A constant scalar to apply for translation along the y-axis
+     * @param rotateAngle Angle for rotation about y-axis
      * @param isPositioning Indicates whether earth is in positioning stage.
      * @see android.opengl.Matrix
      */
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
-                                  boolean isPositioning) {
+                                  float rotateAngle, boolean isPositioning) {
         // Matrix structure:
         // [ 0  4  8   12 ]
         // [ 1  5  9   13 ]
@@ -235,7 +235,7 @@ public class EarthRenderer extends ObjectRenderer {
         scaleMatrix[10] = scaleFactor;
         //TODO don't rotate modelMatrix -- fuckin up the pointer
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
-        Matrix.rotateM(mModelMatrix, 0, angle, 0.0f, 1.0f, 0.0f);
+        Matrix.rotateM(mModelMatrix, 0, rotateAngle + 90.0f, 0.0f, 1.0f, 0.0f);
 
         // Rotate if in positioning mode
         if (isPositioning) {

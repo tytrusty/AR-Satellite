@@ -122,13 +122,16 @@ public class OrbitRenderer {
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
      * @see android.opengl.Matrix
      */
-    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor) {
+    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
+                                  float rotateAngle) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0]  = scaleFactor;
         scaleMatrix[5]  = scaleFactor;
         scaleMatrix[10] = scaleFactor;
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+        Matrix.rotateM(mModelMatrix, 0, rotateAngle, 0.0f, 1.0f, 0.0f);
+
         mModelMatrix[13] = translateFactor;
     }
 

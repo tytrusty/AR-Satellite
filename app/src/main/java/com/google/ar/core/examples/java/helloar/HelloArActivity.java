@@ -16,14 +16,12 @@
 
 package com.google.ar.core.examples.java.helloar;
 
-import android.nfc.Tag;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.Snackbar;
 import android.support.v4.math.MathUtils;
-import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -31,7 +29,6 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.Interpolator;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -55,13 +52,14 @@ import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.OrbitRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.PointCloudRenderer;
-import com.google.ar.core.examples.java.helloar.rendering.SatelliteRenderer;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -85,10 +83,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private DisplayRotationHelper mDisplayRotationHelper;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
-    private final EarthRenderer mEarthObject = new EarthRenderer();
-    private final DottedLineRenderer mLineRenderer = new DottedLineRenderer();
-    private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
-    private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
+    private final EarthRenderer mEarthObject             = new EarthRenderer();
+    private final DottedLineRenderer mLineRenderer       = new DottedLineRenderer();
+    private final PlaneRenderer mPlaneRenderer           = new PlaneRenderer();
+    private final PointCloudRenderer mPointCloud         = new PointCloudRenderer();
 
     Satellite mSat;
     OrbitRenderer mOrbitRenderer1;
@@ -104,12 +102,14 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final float TRANSLATE_MIN   = -1.0f;
     private final float TRANSLATE_MAX   = 1.0f;
     private final float TRANSLATE_SPEED = 0.002f;
+    private final float ROTATE_SPEED    = 0.5f;
 
     private final float SCALE_MAX = 5.0f;
     private final float SCALE_MIN = 0.1f;
 
-    private float mScaleFactor = 0.15f;
+    private float mScaleFactor     = 0.15f;
     private float mTranslateFactor = -0.5f;
+    private float mRotateAngle     = 0.0f; // in degrees
 
     // The ID of the current pointer that is dragging
     private int mActivePointerID = INVALID_POINTER_ID;
@@ -211,6 +211,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
                         mTranslateFactor += -dy * TRANSLATE_SPEED; // flip Y
                         mTranslateFactor  = MathUtils.clamp(mTranslateFactor, TRANSLATE_MIN, TRANSLATE_MAX);
+
+                        mRotateAngle += dx * ROTATE_SPEED;
 
                         Log.i(TAG, "TranslateFactor: " + mTranslateFactor);
                         break;
@@ -495,16 +497,15 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 float[] origin = new float[4];
                 anchor.getPose().getTranslation(origin, 0);
 
-                //TODO Drag left/right to rotate
                 // Update and draw the model and its shadow.
-                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, isPositioning);
+                mEarthObject.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle, isPositioning);
                 mEarthObject.draw(viewmtx, projmtx, lightIntensity, isPositioning);
 
-                mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mSat.update(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mSat.draw(viewmtx, projmtx, lightIntensity);
-                mOrbitRenderer1.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mOrbitRenderer1.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mOrbitRenderer1.draw(viewmtx, projmtx);
-                mOrbitRenderer2.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor);
+                mOrbitRenderer2.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mOrbitRenderer2.draw(viewmtx, projmtx);
 
                 // Only render y-axis if in positioning stage
