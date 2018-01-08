@@ -4,12 +4,15 @@ package com.google.ar.core.examples.java.helloar.SGP4;
  * Created by TY on 1/1/2018.
  */
 
+import android.content.Context;
 import android.util.Log;
 
 import com.google.ar.core.examples.java.helloar.Kepler;
 import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.Satellite;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -40,6 +43,34 @@ public class SGP4track {
     private static final char opsMode = SGP4utils.OPSMODE_IMPROVED;
     private static final SGP4unit.Gravconsttype gravConstType = SGP4unit.Gravconsttype.wgs72;
 
+    /**
+     * Reads data from tle file and initializes an ArrayList containing newly created
+     * satellite objects.
+     * @param context Application context necessary for getting the internal file directory
+     * @param fileName TLE file name
+     * @return An arraylist of satellite objects read from the TLE file
+     */
+    private List<Satellite> readTLE(final Context context, final String fileName) {
+
+        List<Satellite> satellites = new ArrayList<>();
+        try {
+            FileReader reader = new FileReader(context.getFilesDir() + "/" + fileName);
+            BufferedReader bufferReader = new BufferedReader(reader);
+
+            // Each TLE element has three lines
+            String name, line1, line2;
+            while(((name  = bufferReader.readLine()) != null) &&
+                    ((line1 = bufferReader.readLine()) != null) &&
+                    ((line2 = bufferReader.readLine()) != null)) {
+                satellites.add(new Satellite(new TLEdata(name,line1, line2)));
+            }
+            bufferReader.close();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error reading TLE file: " + fileName + e.getMessage());
+        }
+        return satellites;
+    }
 
     /**
      * Take in TLE information and extract a satellite
@@ -48,7 +79,7 @@ public class SGP4track {
      * @return a satellite data object OR null if failure to initialize
      */
     public static SGP4SatData initSatellite(TLEdata tleData) {
-        // Read TLE information and initialize com.google.ar.core.examples.java.helloar.SGP4 model
+        // Read TLE information and initialize SGP4 model
         SGP4SatData data = new SGP4SatData();
         boolean result = SGP4utils.readTLEandIniSGP4(
                 tleData.line0,          // Name of satellite

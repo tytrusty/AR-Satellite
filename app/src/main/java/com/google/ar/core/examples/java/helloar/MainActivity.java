@@ -363,7 +363,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 "1 25544U 98067A   18008.54103705  .00016717  00000-0  10270-3 0  9032",
                 "2 25544  51.6417  94.5927 0003240 348.1782  11.9295 15.54288204 13688"
         );
-        mSat = new Satellite(this, tle);
+        mSat = new Satellite(tle);
+        mSat.initRenderer(this);
 
         // Prepare the other rendering objects.
         try {

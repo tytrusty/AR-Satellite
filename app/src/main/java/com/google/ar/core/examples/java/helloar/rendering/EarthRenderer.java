@@ -41,7 +41,6 @@ public class EarthRenderer extends ObjectRenderer {
 
     public EarthRenderer() {}
 
-
     private final int stacks = 40;
     private final int slices = 40;
 

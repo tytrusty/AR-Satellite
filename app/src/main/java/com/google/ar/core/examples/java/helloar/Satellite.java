@@ -26,12 +26,11 @@ public class Satellite {
     public SGP4SatData mData;  // SGP4 data
     private SatelliteRenderer mRenderer; // Render satellite object
 
-    Satellite(Context context, TLEdata tle) {
+    public Satellite(TLEdata tle) {
         mData = SGP4track.initSatellite(tle);
-        initRenderer(context);
     }
 
-    private void initRenderer(Context context) {
+    public void initRenderer(Context context) {
         mRenderer = new SatelliteRenderer();
         try {
             mRenderer.createOnGlThread(/*context=*/context,"iss.obj", 0xCC0000FF);
