@@ -50,7 +50,7 @@ public class SGP4track {
      * @param fileName TLE file name
      * @return An arraylist of satellite objects read from the TLE file
      */
-    private List<Satellite> readTLE(final Context context, final String fileName) {
+    public static List<Satellite> readTLE(final Context context, final String fileName) {
 
         List<Satellite> satellites = new ArrayList<>();
         try {
@@ -121,10 +121,17 @@ public class SGP4track {
         // PM of 0,0 is more consistent with online trackers
         double[] ecefPos = CoordConvert.ecefPosVector(pos, 0, 0, propJD, 86400.87);
         double[] longLat = CoordConvert.ecefToLongLat(ecefPos, propJD);
-        sat.setLatitude(longLat[1]);
-        sat.setLongitude(longLat[2]);
+        double latitude  = longLat[1];
+        double longitude = longLat[2];
+        sat.setLatitude(latitude);
+        sat.setLongitude(longitude);
         sat.setAltitude(longLat[3]);
         sat.setSpeed(Math.sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) * 1000);
+
+        double x = Math.cos(latitude) * Math.sin(longitude);
+        double y = Math.sin(latitude);
+        double z = Math.cos(latitude) * Math.cos(longitude);
+        sat.setPosition(x, y, z);
     }
 
     /**

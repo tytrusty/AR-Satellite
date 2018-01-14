@@ -8,6 +8,7 @@ import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.R;
 
 import java.io.IOException;
@@ -221,8 +222,7 @@ public class SatelliteRenderer {
      */
     float scale = 1.5f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
-                                  float rotateAngle, double altitude,
-                                  double latitude, double longitude) {
+                                  float rotateAngle, Point3D position, double altitude) {
         float[] scaleMatrix = new float[16];
         Matrix.setIdentityM(scaleMatrix, 0);
         scaleMatrix[0] = scaleFactor;
@@ -233,9 +233,9 @@ public class SatelliteRenderer {
         Matrix.rotateM(mModelMatrix, 0, rotateAngle, 0.0f, 1.0f, 0.0f);
         mModelMatrix[13] = translateFactor;
 
-        float x = (float) (Math.cos(latitude) * Math.sin(longitude)) * scale;
-        float y = (float) (Math.sin(latitude)) * scale;
-        float z = (float) (Math.cos(latitude) * Math.cos(longitude)) * scale;
+        float x = (float) (position.x) * scale;
+        float y = (float) (position.y) * scale;
+        float z = (float) (position.z) * scale;
         Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0, x, y, z);
 
 //        //TODO do (altitude + Earth_Radius) / Earth_radius for translate
@@ -266,7 +266,7 @@ public class SatelliteRenderer {
      * @param lightIntensity  Illumination intensity.  Combined with diffuse and specular material
      *     properties.
      * @see #setBlendMode(BlendMode)
-     * @see #updateModelMatrix(float[], float, float, float, double, double, double)
+     * @see #updateModelMatrix(float[], float, float, float, Point3D, double)
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */

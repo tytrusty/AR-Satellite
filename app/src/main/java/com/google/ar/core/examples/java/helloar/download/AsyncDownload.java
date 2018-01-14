@@ -2,12 +2,14 @@ package com.google.ar.core.examples.java.helloar.download;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.security.NetworkSecurityPolicy;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
 import com.google.ar.core.examples.java.helloar.R;
+import com.google.ar.core.examples.java.helloar.SGP4.SGP4track;
 import com.google.ar.core.examples.java.helloar.SGP4.TLEdata;
 import com.google.ar.core.examples.java.helloar.Satellite;
 import com.google.ar.core.examples.java.helloar.SatelliteCluster;
@@ -40,21 +42,22 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
     private final Context context;
     private final RelativeLayout background;
     private final ProgressBar progressBar;
-    private final SatelliteCluster adapter;
+    private final SatelliteCluster cluster;
+    private String mFileName = "tle.txt";
 
     private boolean isFinishedDownloading = false; // Used to indicate that download is done so user can continue to main activity
 
-    public AsyncDownload(Context context, SatelliteCluster adapter) {
+    public AsyncDownload(Context context, SatelliteCluster cluster) {
         this.context     = context;
-        this.adapter     = adapter;
+        this.cluster     = cluster;
         this.background  = null;
         this.progressBar = null;
     }
 
-    public AsyncDownload(Context context, SatelliteCluster adapter, RelativeLayout background,
+    public AsyncDownload(Context context, SatelliteCluster cluster, RelativeLayout background,
                          ProgressBar progressBar) {
         this.context     = context;
-        this.adapter     = adapter;
+        this.cluster     = cluster;
         this.background  = background;
         this.progressBar = progressBar;
     }
@@ -69,14 +72,14 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
 
     @Override
     protected Boolean doInBackground(String... tleFile) {
-        final String fileName = tleFile[0];
-        final boolean isFileOld = DownloadTLE.checkTLEFile(context, fileName);
+        mFileName = tleFile[0];
+        final boolean isFileOld = DownloadTLE.checkTLEFile(context, mFileName);
         if (isFileOld) {
             Log.d(TAG, "Downloading TLE");
             try {
                 String baseURL = context.getResources().getString(R.string.url_base);
 
-                File file = new File(context.getFilesDir(), fileName); // Create file for persistence
+                File file = new File(context.getFilesDir(), mFileName); // Create file for persistence
                 FileWriter writer = new FileWriter(file);
 
                 CookieManager manager = new CookieManager();
@@ -84,7 +87,7 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
                 CookieHandler.setDefault(manager);
 
                 // Space track url
-                URL url = new URL(baseURL+ fileName);
+                URL url = new URL(baseURL + mFileName);
 
                 // Opening connection
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -114,18 +117,18 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
             }
             return true;    // File downloaded
         } else {
-            Log.i(TAG, "Not Downloading TLE");
+            Log.d(TAG, "Not Downloading TLE");
             return false;   // File not downloaded as it already exists
         }
     }
 
     @Override
     protected void onProgressUpdate(Satellite... res) {
-        Satellite sat = res[0];
+//        Satellite sat = res[0];
 
         // If downloaded succeeded, add the satellite to the adapter so that it may be rendered
-        if(sat != null) {
-//            int index = adapter.addSatellite(sat, 100);
+        if(res != null && res.length > 0) {
+            cluster.addSatellite(res[0]);
         }
 
         // If downloaded failed, display notification
@@ -169,24 +172,14 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
 
         // If the file was not downloaded, then satellites need to be read from the pre-existing file.
         if(!downloaded) {
-//            SGP4track track = new SGP4track(context);
-//            track.init(fileName);
-//            adapter.addList(track.getSatellites());
+            cluster.addSatellite(SGP4track.readTLE(context, mFileName));
         }
 
-//        adapter.notifyDataSetChanged(); // Provide assurance that all satellites are present.
-
-        System.out.println("Finished downloading TLE ");
+        Log.d(TAG, "AsyncDownload finished executing");
 
     }
 
     public boolean isFinishedDownloading() {
         return isFinishedDownloading;
     }
-
-    public void setFinishedDownloading(boolean state) {
-        isFinishedDownloading = state;
-    }
-
-
 }

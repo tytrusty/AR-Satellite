@@ -17,14 +17,15 @@ import java.io.IOException;
 
 public class Satellite {
     private static final String TAG = Satellite.class.getSimpleName();
-
+    public SGP4SatData mData;  // SGP4 data
     private int mID;           // Norad ID
     private double mLatitude;  // latitude in radians
     private double mLongitude; // longitude in radians
     private double mAltitude;  // altitude in kilometers
     private double mSpeed;     // speed in m/s
-    public SGP4SatData mData;  // SGP4 data
-    private SatelliteRenderer mRenderer; // Render satellite object
+    private SatelliteRenderer mRenderer;       // Render satellite object
+    private Point3D mPosition = new Point3D(); // x,y,z position for rendering
+
 
     public Satellite(TLEdata tle) {
         mData = SGP4track.initSatellite(tle);
@@ -43,7 +44,7 @@ public class Satellite {
     public void update(float[] modelMatrix, float scaleFactor, float translateFactor, float rotateAngle) {
         SGP4track.updateSatellite(this); // Get new coordinates
         mRenderer.updateModelMatrix(modelMatrix, scaleFactor, translateFactor, rotateAngle,
-                mAltitude, mLatitude, mLongitude);
+                mPosition, mAltitude);
     }
 
     public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity) {
@@ -55,9 +56,16 @@ public class Satellite {
     public void setLatitude(double latitude) { mLatitude = latitude; }
     public void setAltitude(double altitude) { mAltitude = altitude; }
     public void setSpeed(double speed) { mSpeed = speed; }
+    public void setPosition(Point3D position) { mPosition = position; }
+    public void setPosition(double x, double y, double z) {
+        mPosition.x = x;
+        mPosition.y = y;
+        mPosition.z = z;
+    }
+
     public double getLongitude() { return mLongitude; }
     public double getLatitude() { return mLatitude; }
     public double getAltitude() { return mAltitude; }
     public double getSpeed() { return mSpeed; }
-
+    public Point3D getPosition() { return mPosition; }
 }

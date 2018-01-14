@@ -30,6 +30,7 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.daimajia.androidanimations.library.Techniques;
@@ -46,7 +47,9 @@ import com.google.ar.core.Trackable;
 import com.google.ar.core.Trackable.TrackingState;
 import com.google.ar.core.examples.java.helloar.SGP4.SGP4track;
 import com.google.ar.core.examples.java.helloar.SGP4.TLEdata;
+import com.google.ar.core.examples.java.helloar.download.AsyncDownload;
 import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
+import com.google.ar.core.examples.java.helloar.rendering.ClusterRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.DottedLineRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
 import com.google.ar.core.examples.java.helloar.rendering.EarthShadowRenderer;
@@ -58,7 +61,6 @@ import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -82,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private ScaleGestureDetector mScaleDetector;
     private Snackbar mMessageSnackbar;
     private DisplayRotationHelper mDisplayRotationHelper;
+    private Button mConfirmButton;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     private final EarthRenderer mEarthObject             = new EarthRenderer();
@@ -92,6 +95,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     Satellite mSat;
     OrbitRenderer mOrbitRenderer1;
+    ClusterRenderer mClusterRenderer = new ClusterRenderer();
+    SatelliteCluster mCluster = new SatelliteCluster();
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] mAnchorMatrix = new float[16];
@@ -119,7 +124,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private float mPrevY;
 
     private boolean isPositioning = true;
-    private Button mConfirmButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,7 +142,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 isPositioning = false;
             }
         });
-
 
         // Set up tap listener.
         mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -280,6 +283,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             showSnackbarMessage("This device does not support AR", true);
         }
         mSession.configure(config);
+
+        AsyncDownload asyncDownload = new AsyncDownload(this, mCluster);
+        asyncDownload.execute("tleNoDebris.txt");
     }
 
     @Override
@@ -377,6 +383,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             mOrbitRenderer1.createOnGlThread(this);
 
             mLineRenderer.createOnGlThread(this);
+
+            mClusterRenderer.createOnGlThread(this);
         } catch (IOException e) {
             Log.e(TAG, "Failed to read obj file");
         }
@@ -394,10 +402,20 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         GLES20.glViewport(0, 0, width, height);
     }
 
+    long prev = 0;
+    long frames = 0;
     @Override
     public void onDrawFrame(GL10 gl) {
         // Clear screen to notify driver it should not load any pixels from previous frame.
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+
+        long curr = System.currentTimeMillis();
+        frames++;
+        if ( (curr - prev) >= 1000.0) {
+            System.out.println("FPS: " + frames);
+            frames = 0;
+            prev = curr;
+        }
 
         if (mSession == null) {
             return;
@@ -486,7 +504,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             // Visualize anchors created by touch.
 //            for (Anchor anchor : mAnchors) {
                 if (mEarthAnchor == null || mEarthAnchor.getTrackingState() != TrackingState.TRACKING) {
-                    // TODO re-enter positioning
+                    // TODO re-enter positioning mode
+
                     // Notify user that tracking is Lost and attempting to find anchor again
                     // Also add button that user can press to restart to positioning phase
                     return;
@@ -508,6 +527,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 mSat.draw(viewmtx, projmtx, lightIntensity);
                 mOrbitRenderer1.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mOrbitRenderer1.draw(viewmtx, projmtx);
+
+                mClusterRenderer.update(mCluster);
+                mClusterRenderer.draw(viewmtx, projmtx);
 
                 // Only render y-axis if in positioning stage
                 if (isPositioning) {
