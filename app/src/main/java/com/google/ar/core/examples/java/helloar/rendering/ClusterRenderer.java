@@ -39,6 +39,11 @@ public class ClusterRenderer {
 
     private SatelliteCluster mPrevCluster;
 
+    // Temporary matrices allocated here to reduce number of allocations for each frame.
+    private float[] mModelMatrix = new float[16];
+    private float[] mModelViewMatrix = new float[16];
+    private float[] mModelViewProjectionMatrix = new float[16];
+
     public ClusterRenderer() {
     }
 
@@ -117,6 +122,26 @@ public class ClusterRenderer {
     }
 
     /**
+     * Updates the lines origin and end points
+     *
+     * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
+     * @see android.opengl.Matrix
+     */
+    public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
+                                  float rotateAngle) {
+        float[] scaleMatrix = new float[16];
+        Matrix.setIdentityM(scaleMatrix, 0);
+        scaleMatrix[0]  = scaleFactor;
+        scaleMatrix[5]  = scaleFactor;
+        scaleMatrix[10] = scaleFactor;
+        Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, scaleMatrix, 0);
+        Matrix.rotateM(mModelMatrix, 0, rotateAngle, 0.0f, 1.0f, 0.0f);
+
+        mModelMatrix[13] = translateFactor;
+    }
+
+
+    /**
      * Renders the satellite cluster
      *
      * @param cameraView        the camera view matrix for this frame, typically from {@link
@@ -125,8 +150,11 @@ public class ClusterRenderer {
      *                          com.google.ar.core.Camera#getProjectionMatrix(float[], int, float, float)}.
      */
     public void draw(float[] cameraView, float[] cameraPerspective) {
-        float[] modelViewProjection = new float[16];
-        Matrix.multiplyMM(modelViewProjection, 0, cameraPerspective, 0, cameraView, 0);
+        // Build the ModelView and ModelViewProjection matrices
+        // for calculating object position and light.
+        Matrix.multiplyMM(mModelViewMatrix, 0, cameraView, 0, mModelMatrix, 0);
+        Matrix.multiplyMM(mModelViewProjectionMatrix, 0, cameraPerspective, 0, mModelViewMatrix, 0);
+
 
         ShaderUtil.checkGLError(TAG, "Before draw");
 
@@ -136,7 +164,7 @@ public class ClusterRenderer {
         GLES20.glVertexAttribPointer(
                 mPositionAttribute, 4, GLES20.GL_FLOAT, false, BYTES_PER_POINT, 0);
         GLES20.glUniform4f(mColorUniform, 31.0f / 255.0f, 188.0f / 255.0f, 210.0f / 255.0f, 1.0f);
-        GLES20.glUniformMatrix4fv(mModelViewProjectionUniform, 1, false, modelViewProjection, 0);
+        GLES20.glUniformMatrix4fv(mModelViewProjectionUniform, 1, false, mModelViewProjectionMatrix, 0);
         GLES20.glUniform1f(mPointSizeUniform, 5.0f);
 
         GLES20.glDrawArrays(GLES20.GL_POINTS, 0, mNumPoints);

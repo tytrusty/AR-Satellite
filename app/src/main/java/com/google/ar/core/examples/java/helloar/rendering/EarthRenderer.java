@@ -36,7 +36,7 @@ import java.nio.ShortBuffer;
  * Renders an object loaded from an OBJ file in OpenGL.
  */
 public class EarthRenderer extends ObjectRenderer {
-    public static final float EARTH_RADIUS = 6.371f; // in kilometers
+    public static final float EARTH_RADIUS = 6371.0f; // in kilometers
     private static final String TAG = EarthRenderer.class.getSimpleName();
 
     public EarthRenderer() {}

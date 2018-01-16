@@ -56,9 +56,6 @@ public class OrbitRenderer {
         mLineVertices = new float[positions.size() * 3];
         int i = 0;
         for (Point3D pos : positions) {
-            //float x = (float) (Math.cos(pos.latitude) * Math.sin(pos.longitude));
-            //float y = (float) (Math.sin(pos.latitude));
-            //float z = (float) (Math.cos(pos.latitude) * Math.cos(pos.longitude)) ;
             mLineVertices[i++] = (float) pos.x;
             mLineVertices[i++] = (float) pos.y;
             mLineVertices[i++] = (float) pos.z;

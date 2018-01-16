@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private final float ROTATE_SPEED    = 0.5f;
 
     private final float SCALE_MAX = 5.0f;
-    private final float SCALE_MIN = 0.1f;
+    private final float SCALE_MIN = 0.05f;
 
     private float mScaleFactor     = 0.15f;
     private float mTranslateFactor = -0.5f;
@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
                 // Don't let the object get too small or too large.
                 mScaleFactor = Math.max(SCALE_MIN, Math.min(mScaleFactor, SCALE_MAX));
-                Log.i(TAG, "mScaleFactor: " + mScaleFactor);
+                Log.d(TAG, "mScaleFactor: " + mScaleFactor);
                 return true;
             }
 
@@ -219,7 +219,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
                         mRotateAngle += dx * ROTATE_SPEED;
 
-                        Log.i(TAG, "TranslateFactor: " + mTranslateFactor);
+                        Log.d(TAG, "TranslateFactor: " + mTranslateFactor);
                         break;
                     } case MotionEvent.ACTION_UP: {
                         mActivePointerID = INVALID_POINTER_ID;
@@ -529,6 +529,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 mOrbitRenderer1.draw(viewmtx, projmtx);
 
                 mClusterRenderer.update(mCluster);
+                mClusterRenderer.updateModelMatrix(mAnchorMatrix, mScaleFactor, mTranslateFactor, mRotateAngle);
                 mClusterRenderer.draw(viewmtx, projmtx);
 
                 // Only render y-axis if in positioning stage

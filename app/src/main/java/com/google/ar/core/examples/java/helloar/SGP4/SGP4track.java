@@ -10,6 +10,7 @@ import android.util.Log;
 import com.google.ar.core.examples.java.helloar.Kepler;
 import com.google.ar.core.examples.java.helloar.Point3D;
 import com.google.ar.core.examples.java.helloar.Satellite;
+import com.google.ar.core.examples.java.helloar.rendering.EarthRenderer;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -123,14 +124,16 @@ public class SGP4track {
         double[] longLat = CoordConvert.ecefToLongLat(ecefPos, propJD);
         double latitude  = longLat[1];
         double longitude = longLat[2];
+        double altitude  = longLat[3];
         sat.setLatitude(latitude);
         sat.setLongitude(longitude);
-        sat.setAltitude(longLat[3]);
+        sat.setAltitude(altitude);
         sat.setSpeed(Math.sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) * 1000);
 
-        double x = Math.cos(latitude) * Math.sin(longitude);
-        double y = Math.sin(latitude);
-        double z = Math.cos(latitude) * Math.cos(longitude);
+        double radius = (altitude + EarthRenderer.EARTH_RADIUS) / EarthRenderer.EARTH_RADIUS;
+        double x = radius * Math.cos(latitude) * Math.sin(longitude);
+        double y = radius * Math.sin(latitude);
+        double z = radius * Math.cos(latitude) * Math.cos(longitude);
         sat.setPosition(x, y, z);
     }
 
@@ -229,9 +232,10 @@ public class SGP4track {
                 lon += (newJD - julTime) * TWO_PI;
             }
 
-            double x = 1.5 * (Math.cos(lat) * Math.sin(lon));
-            double y = 1.5 * (Math.sin(lat));
-            double z = 1.5 * (Math.cos(lat) * Math.cos(lon));
+            double radius = (longLat[3] + EarthRenderer.EARTH_RADIUS) / EarthRenderer.EARTH_RADIUS;
+            double x = radius * (Math.cos(lat) * Math.sin(lon));
+            double y = radius * (Math.sin(lat));
+            double z = radius * (Math.cos(lat) * Math.cos(lon));
             positions.add(new Point3D(x, y, z));
         }
         return positions;

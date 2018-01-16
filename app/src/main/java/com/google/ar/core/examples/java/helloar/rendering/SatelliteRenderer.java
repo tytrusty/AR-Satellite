@@ -220,7 +220,6 @@ public class SatelliteRenderer {
      * @param scaleFactor A separate scaling factor to apply before the {@code modelMatrix}.
      * @see android.opengl.Matrix
      */
-    float scale = 1.5f;
     public void updateModelMatrix(float[] modelMatrix, float scaleFactor, float translateFactor,
                                   float rotateAngle, Point3D position, double altitude) {
         float[] scaleMatrix = new float[16];
@@ -233,12 +232,8 @@ public class SatelliteRenderer {
         Matrix.rotateM(mModelMatrix, 0, rotateAngle, 0.0f, 1.0f, 0.0f);
         mModelMatrix[13] = translateFactor;
 
-        float x = (float) (position.x) * scale;
-        float y = (float) (position.y) * scale;
-        float z = (float) (position.z) * scale;
-        Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0, x, y, z);
-
-//        //TODO do (altitude + Earth_Radius) / Earth_radius for translate
+        Matrix.translateM(mModelMatrix, 0, mModelMatrix, 0,
+                (float) position.x, (float) position.y, (float) position.z);
     }
 
     /**

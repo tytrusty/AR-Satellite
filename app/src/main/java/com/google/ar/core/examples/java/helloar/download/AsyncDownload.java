@@ -16,6 +16,7 @@ import com.google.ar.core.examples.java.helloar.SatelliteCluster;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.net.CookieHandler;
@@ -74,22 +75,20 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
     protected Boolean doInBackground(String... tleFile) {
         mFileName = tleFile[0];
         final boolean isFileOld = DownloadTLE.checkTLEFile(context, mFileName);
+
         if (isFileOld) {
             Log.d(TAG, "Downloading TLE");
             try {
-                String baseURL = context.getResources().getString(R.string.url_base);
-
-                File file = new File(context.getFilesDir(), mFileName); // Create file for persistence
-                FileWriter writer = new FileWriter(file);
-
+                // Setting up reader and writer
+                String baseURL        = context.getResources().getString(R.string.url_base);
+                File file             = new File(context.getFilesDir(), mFileName);
+                FileWriter writer     = new FileWriter(file);
                 CookieManager manager = new CookieManager();
                 manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
                 CookieHandler.setDefault(manager);
 
-                // Space track url
-                URL url = new URL(baseURL + mFileName);
-
                 // Opening connection
+                URL url = new URL(baseURL + mFileName);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setDoOutput(true);
                 conn.setRequestMethod("POST");
@@ -97,27 +96,52 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
                 //  Reading and accessing TLE file
                 BufferedReader br = new BufferedReader(new InputStreamReader((url.openStream())));
                 String name, line1, line2; // TLE data
-                while(  ((name  = br.readLine()) != null) &&
-                        ((line1 = br.readLine()) != null) &&
-                        ((line2 = br.readLine()) != null)) {
+                while(((name  = br.readLine()) != null) &&
+                      ((line1 = br.readLine()) != null) &&
+                      ((line2 = br.readLine()) != null)) {
                     TLEdata tle = new TLEdata(name, line1, line2);
+                    // Saving TLE file to internal storage
                     writer.write(name + "\n");
                     writer.write(line1 + "\n");
                     writer.write(line2 + "\n");
-                    publishProgress(new Satellite(tle)); // Unsuccessful connection
+                    Satellite newSat = new Satellite(tle);
+                    SGP4track.updateSatellite(newSat);
+                    publishProgress(newSat);
                     writer.flush();
                 }
+                br.close();
                 writer.close();
                 conn.disconnect();
-
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.i(TAG,"Failed to connect to server");
                 publishProgress(null); // Unsuccessful connection
             }
             return true;    // File downloaded
+
         } else {
+            // If the file was not downloaded, then satellites need to be read from the pre-existing file.
             Log.d(TAG, "Not Downloading TLE");
+            try {
+                FileReader reader = new FileReader(context.getFilesDir() + "/" + mFileName);
+                BufferedReader br = new BufferedReader(reader);
+
+                // Each TLE element has three lines
+                String name, line1, line2;
+                while(((name  = br.readLine()) != null) &&
+                      ((line1 = br.readLine()) != null) &&
+                      ((line2 = br.readLine()) != null)) {
+                    TLEdata tle = new TLEdata(name, line1, line2);
+                    Satellite newSat = new Satellite(tle);
+                    SGP4track.updateSatellite(newSat);
+                    publishProgress(newSat);
+                }
+                br.close();
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error reading TLE file: " + mFileName + e.getMessage());
+            }
+
             return false;   // File not downloaded as it already exists
         }
     }
@@ -171,9 +195,9 @@ public class AsyncDownload extends AsyncTask<String, Satellite, Boolean> {
         }
 
         // If the file was not downloaded, then satellites need to be read from the pre-existing file.
-        if(!downloaded) {
-            cluster.addSatellite(SGP4track.readTLE(context, mFileName));
-        }
+//        if(!downloaded) {
+//            cluster.addSatellite(SGP4track.readTLE(context, mFileName));
+//        }
 
         Log.d(TAG, "AsyncDownload finished executing");
 
